@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from fuel_fraction import fuel_fraction
+from functools import partial
 from constraint_equations import *
 
 mpl.rcParams.update({
@@ -34,14 +35,15 @@ payload_config = {
     }
 }
 
-def fixed_payload(W_crew, n_aim9x, n_mk83, n_aim120, W_aim9x, W_aim120, W_mk83, W_avionics):
-    W_payload = (n_aim9x * W_aim9x) + (n_mk83 * W_mk83) + (n_aim120 * W_aim120)
+def fixed_payload(W_crew, n_aim9x, n_mk83, n_aim120, W_aim9x, W_aim120, W_mk83, W_avionics, store=1.0):
+    W_payload = (n_aim9x * W_aim9x) + (n_mk83 * W_mk83) + (n_aim120 * W_aim120) * store
     W_crew_payload = W_crew + W_payload + W_avionics
     return W_crew_payload
     
 W_fixed_payload = {
     'combat': fixed_payload(**payload_mass, **payload_config['combat']),
-    'strike': fixed_payload(**payload_mass, **payload_config['strike'])
+    'strike': fixed_payload(**payload_mass, **payload_config['strike']),
+    'end': fixed_payload(**payload_mass, **payload_config['strike'], store=0.5)
 }
 # %%
 def empty_weight(S: dict, T_0, TOGW):
@@ -71,11 +73,17 @@ def empty_weight(S: dict, T_0, TOGW):
 
 # %% [markdown]
 # ## Inner Loop
+# %% 
+def weight_fraction(TOGW, fuel_fraction=0):
+    used_fuel_weight = TOGW * fuel_fraction # how much fuel has been used
 
+    weight_frac =  (TOGW - used_fuel_weight)/TOGW
+    return weight_frac
 # %%
 def weight_convergence(W_guess, T_0, S,
                        mission,
                        W_fixed_payload=W_fixed_payload, fuel_fraction=fuel_fraction,
+                       weight_fraction=weight_fraction,
                        tol=1e-6, iter=200):
 
     delta = np.inf 
@@ -93,27 +101,22 @@ def weight_convergence(W_guess, T_0, S,
         i +=1
     converged = (delta <= tol)
 
-    return W_guess, converged, converge_history
+    W = W_guess * weight_fraction(W_guess)
+    return W, converged, converge_history
 
-# %% 
-def weight_fraction(TOGW, fuel_fraction):
-    used_fuel_weight = TOGW * fuel_fraction # how much fuel has been used
-
-    weight_frac =  (TOGW - used_fuel_weight)/TOGW
-    return weight_frac
 # %% [markdown]
 # ## Outer Loop
 
 # %%
-def thrust_from_wing_area(W_guess, S_wing, T_0, segment_function, mission, weight_fraction=1, relax=1.0, tol =1e-3, max_iter=100):
+def thrust_from_wing_area(W_guess, S_wing, T_0, segment_function, mission, relax=1.0, tol =1e-3, max_iter=100):
     
     S = {'wing': S_wing, 'htail': 78.41, 'vtail': 78.41, 'fuse_wet': 529.81}
     T_total = T_0
 
     for k in range(max_iter):
-        W_0, _, _ = weight_convergence(W_guess, T_0, S, mission)
+        W, _, _ = weight_convergence(W_guess, T_0, S, mission)
 
-        W = W_0 * weight_fraction
+        W = W
         WS = W / S_wing
         TW = segment_function(WS)
         T_req = TW * W
@@ -131,19 +134,31 @@ def thrust_from_wing_area(W_guess, S_wing, T_0, segment_function, mission, weigh
     return T_total
 
 # %%
-def TS_line(S_guess, W_guess, T_0, segment_function, mission, weight_fraction=1, plot_styling={}):
-    T = [thrust_from_wing_area(W_guess, S_wing=S, T_0=T_0, segment_function=segment_function, mission=mission, weight_fraction=weight_fraction) for S in S_guess]
+def TS_line(S_guess, W_guess, T_0, segment_function, mission, plot_styling={}, fill=False):
+    T = [thrust_from_wing_area(W_guess, S_wing=S, T_0=T_0, segment_function=segment_function, mission=mission,)[0] for S in S_guess]
 
-    return plt.plot(S_guess, T, **plot_styling)
+    if fill:
+        plt.plot(S_guess, T, **plot_styling)
+        plt.fill_between(S_guess, T, 0, color='gainsboro')
+    else:
+        return plt.plot(S_guess, T, **plot_styling)
 # %%
 
-def WS_line(W_guess, T_0, segment_function, mission, weight_fraction=1, S_wing = 300, plot_styling={}):
+def WS_line(W_guess, T_0, segment_function, mission, 
+            weight_fraction=partial(weight_fraction, fuel_fraction=fuel_fraction['strike_end_mission']), # landing after fuel consumed from combat (sufficient for loiter & land) 
+            unloaded_weight=W_fixed_payload['end'], # landing constraint  
+            S_wing = 300, plot_styling={}, fill=False):
 
     S_guess = {'wing': S_wing, 'htail': 78.41, 'vtail': 78.41, 'fuse_wet': 529.81}
 
     WL = segment_function
-
-    S = [weight_convergence(W_guess=W_guess, T_0=T_0, S=S_guess, mission=mission)[0]/WL for T_0 in T_0]
+    W = [weight_convergence(W_guess=W_guess, T_0=T_0, S=S_guess, mission=mission)[0] - unloaded_weight for T_0 in T_0]
+        
+    S = [W_0 * weight_fraction(W_0)/WL for W_0 in W]
     
-    return plt.plot(S, T_0, **plot_styling)
+    if fill: 
+        plt.plot(S, T_0, **plot_styling)
+        plt.fill_between(S, T_0, 1e6, color='gainsboro')
+    else:
+        return plt.plot(S, T_0, **plot_styling)
 

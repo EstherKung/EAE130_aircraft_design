@@ -4,6 +4,9 @@ __pycache__/
 *$py.class
 .env*
 
+# figures generated
+*.png
+
 # C extensions
 *.so
 

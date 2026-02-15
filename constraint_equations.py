@@ -147,7 +147,7 @@ def climb_curve(WL, vertical_climb_rate, V_horizontal, g=32.2, c_Do = AERO_DEF['
 # %%
 def sustained_turn(WL, Ma, alt, deg=8.0, g=32.2, a=a, rho=rho,
                     AR=AERO_DEF['AR'], e=AERO_DEF['e'], c_Do=AERO_DEF['c_Do'], 
-                    plot_styling={}):
+                    mid_mission_weight_fraction=1, plot_styling={}):
     a = a(alt); rho = rho(alt)
     V = Ma * a # ft/s
     q = 1/2 * rho * V**2 #dynamic pressure
@@ -155,7 +155,7 @@ def sustained_turn(WL, Ma, alt, deg=8.0, g=32.2, a=a, rho=rho,
     turn_rate = deg/57.3 # in radians/sec
     n = np.sqrt((turn_rate * V / g)**2 + 1)
     
-    TW = q * c_Do/WL + WL * (n**2)/(q*np.pi*AR*e)
+    TW = q * c_Do/WL + WL * mid_mission_weight_fraction**2 * (n**2)/(q*np.pi*AR*e)
 
     if not plot_styling:
         return TW 

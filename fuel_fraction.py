@@ -1,3 +1,4 @@
+# %%
 import numpy as np
 # Ryuya Iwase
 # %%
@@ -157,6 +158,6 @@ fuel_fraction = {
     'combat': fuel_frac(mission_sequence=mission_sequence['combat'], **empty_statistic),
     'combat_mid_mission': fuel_frac(mission_sequence=mission_sequence['combat_mid_mission'], **empty_statistic),
     'strike_end_mission': fuel_frac(mission_sequence=mission_sequence['strike_end_mission'], **empty_statistic),
-    'combat_end_mission': fuel_frac(mission_sequence=mission_sequence['strike_end_mission'], **empty_statistic),
+    'combat_end_mission': fuel_frac(mission_sequence=mission_sequence['combat_end_mission'], **empty_statistic),
 }
 # %%
