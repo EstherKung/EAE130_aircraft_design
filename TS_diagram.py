@@ -7,16 +7,15 @@ plt.figure(figsize=(10, 5))
 
 S_guess = np.linspace(300, 600, 400)
 # %%
-# 7g load factor
-TS_line(S_guess, W_guess=50000, T_0=44000, 
-        segment_function=partial(load_factor, Ma=0.9, alt=0, n=7), mission='strike',
-        plot_styling={'label': '7g load factor','linestyle': '-', 'color': 'tab:pink'},
-        fill=True)
-# %%
-# 8g load factor
-TS_line(S_guess, W_guess=50000, T_0=44000, 
-        segment_function=partial(load_factor, Ma=0.9, alt=0, n=8), mission='strike',
-        plot_styling={'label': '8g load factor','linestyle': '--', 'color': 'tab:pink', 'alpha': 0.5})
+# # 7g load factor
+# TS_line(S_guess, W_guess=50000, T_0=44000, 
+#         segment_function=partial(load_factor, Ma=0.9, alt=0, n=7), mission='strike',
+#         plot_styling={'label': '7g load factor','linestyle': '-', 'color': 'tab:pink'},
+#         fill=True)
+# # 8g load factor
+# TS_line(S_guess, W_guess=50000, T_0=44000, 
+#         segment_function=partial(load_factor, Ma=0.9, alt=0, n=8), mission='strike',
+#         plot_styling={'label': '8g load factor','linestyle': '--', 'color': 'tab:pink', 'alpha': 0.5})
 # Ma 1.6 dash, 30k ft
 TS_line(S_guess, W_guess=50000, T_0=44000, 
         segment_function=partial(dash, Ma=1.6, alt=30000), mission='combat',
@@ -51,9 +50,15 @@ TS_line(S_guess, W_guess=50000, T_0=44000,
         fill=True)
 
 T_sweep = np.linspace(1000, 80000, 400)
+
+
+WS_line(W_guess=50000, T_0=T_sweep,
+        segment_function=instant_load_factor(Ma=0.90, alt=20000, n=7), mission='strike',
+                plot_styling={'label': '7g load factor','linestyle': '-', 'color': 'tab:pink'}, fill=False)
 # takeoff at 160 kts
 
 V_end = 160.0
+
 WS_line(W_guess=50000, T_0=T_sweep, mission='strike',
         segment_function=takeoff(V_end), 
         weight_fraction=partial(weight_fraction, fuel_fraction=0),

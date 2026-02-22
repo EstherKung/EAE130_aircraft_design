@@ -193,6 +193,21 @@ def load_factor(WL, Ma, alt, n, g=32.2, a=a, rho=rho,
             plt.fill_between(WL, TW, 0, color='gainsboro')
         return plt.plot(WL, TW, label=f"load factor {n}g", **plot_styling)
 
+def instant_load_factor(Ma, alt, n, a=a, rho=rho,  
+                        CL=CLmax['takeoff'], 
+                        plot_styling={}):
+    a = a(alt); rho = rho(alt)
+    V = Ma * a
+    q = 1/2 * rho * V**2 # 
+
+    WL = q * CL / n
+
+    if not plot_styling:
+        return WL
+    else:
+        return plt.axvline(x=WL, label=f"vertical load factor {n}g", **plot_styling)
+    
+
 # %% [markdown]
 # ## Dash Speed
 # Just a casual equilibrium where $L = W$ and $T = D$ such that when we divide the two equations we get

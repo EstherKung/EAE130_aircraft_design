@@ -26,10 +26,12 @@ dash(WL=WL_range, Ma=0.85, alt=0,
 dash(WL=WL_range, Ma=0.90, alt=0, 
      plot_styling={'linestyle': '--','color':'tab:blue', 'alpha': 0.5}, fill=False)
 
-load_factor(WL=WL_range, Ma=0.9, alt=20000, n=7, 
-            plot_styling={'linestyle': '-', 'color': 'tab:pink'})
-load_factor(WL=WL_range, Ma=0.9, alt=20000, n=8, 
-            plot_styling={'linestyle': '--', 'color': 'tab:pink', 'alpha':0.5}, fill=False)
+# load_factor(WL=WL_range, Ma=0.9, alt=20000, n=7, 
+#             plot_styling={'linestyle': '-', 'color': 'tab:pink'})
+# load_factor(WL=WL_range, Ma=0.9, alt=20000, n=8, 
+#             plot_styling={'linestyle': '--', 'color': 'tab:pink', 'alpha':0.5}, fill=False)
+instant_load_factor(Ma=0.9, alt=20000, n=7,
+                     plot_styling={'linestyle': '-', 'color': 'tab:pink'})
 sustained_turn(WL=WL_range, Ma=0.85, alt=20000, deg=8.0, 
                plot_styling={'linestyle': '-', 'color': 'tab:green'})
 
