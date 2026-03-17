@@ -14,9 +14,11 @@ V_stall = V_approach / 1.10
 plt.figure(figsize=(10, 5))
 
 
-climb_curve(WL=WL_range, vertical_climb_rate=500, V_horizontal=135, 
-            plot_styling={'linestyle': '-', 'color': 'tab:gray'})
+# climb_curve(WL=WL_range, vertical_climb_rate=500, V_horizontal=135, 
+#             plot_styling={'linestyle': '-', 'color': 'tab:gray'})
 
+service_ceiling(WL=WL_range, RoC=500,
+                plot_styling={'linestyle': '-', 'color':'tab:gray'})
 dash(WL=WL_range, Ma=1.6, alt=30000, 
      plot_styling={'linestyle': '-', 'color':'tab:orange'})
 dash(WL=WL_range, Ma=2.0, alt=30000, 
@@ -34,6 +36,8 @@ instant_load_factor(Ma=0.9, alt=20000, n=7,
                      plot_styling={'linestyle': '-', 'color': 'tab:pink'})
 sustained_turn(WL=WL_range, Ma=0.85, alt=20000, deg=8.0, 
                plot_styling={'linestyle': '-', 'color': 'tab:green'})
+sustained_turn(WL=WL_range, Ma=0.85, alt=20000, deg=10.0, 
+               plot_styling={'linestyle': '--', 'color': 'tab:green', 'alpha':0.5}, fill=False)
 
 
 takeoff(160,

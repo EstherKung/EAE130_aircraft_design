@@ -161,3 +161,4 @@ fuel_fraction = {
     'combat_end_mission': fuel_frac(mission_sequence=mission_sequence['combat_end_mission'], **empty_statistic),
 }
 # %%
+print(fuel_fraction)
