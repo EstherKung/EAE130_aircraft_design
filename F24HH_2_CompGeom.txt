@@ -1,0 +1,40 @@
+...Comp Geom...
+4 Num Comps
+8 Total Num Meshes
+29552 Total Num Tris
+
+Theo_Area   Wet_Area   Theo_Vol    Wet_Vol  Name
+  467.830    467.830    110.383    110.383  Main_Wing      
+  467.830    467.830    110.383    110.383  Main_Wing      
+  157.876      0.000     38.651      0.000  Wing Fuel Tank 
+  157.876      0.000     38.651      0.000  Wing Fuel Tank 
+  128.031    128.031     15.842     15.842  HStab          
+  128.031    128.031     15.842     15.842  HStab          
+   99.377     99.377      8.317      8.317  VStab          
+   99.377     99.377      8.317      8.317  VStab          
+-------------------------------------------------
+ 1706.228   1390.476    346.387    269.085  Totals         
+
+Tag_Theo_Area   Tag_Wet_Area    Tag_Name
+      323.823        323.823    Main_Wing_S_Surf0
+      323.823        323.823    Main_Wing_S_Surf1
+      157.876          0.000    Wing Fuel Tank_S_Surf0
+      157.876          0.000    Wing Fuel Tank_S_Surf1
+      128.031        128.031    HStab_S_Surf0  
+      128.031        128.031    HStab_S_Surf1  
+       74.346         74.346    VStab_S_Surf0  
+       74.346         74.346    VStab_S_Surf1  
+       62.769         62.769    Main_Wing_S_Surf0,Flaps
+       16.752         16.752    Main_Wing_S_Surf0,Ailerons
+       64.485         64.485    Main_Wing_S_Surf0,Slats
+       62.769         62.769    Main_Wing_S_Surf1,Flaps
+       16.752         16.752    Main_Wing_S_Surf1,Ailerons
+       64.485         64.485    Main_Wing_S_Surf1,Slats
+       25.030         25.030    VStab_S_Surf0,Rudder
+       25.030         25.030    VStab_S_Surf1,Rudder
+
+ SS_Theo_Area    SS_Wet_Area    SS_Name
+      125.539        125.539    Main_Wing,Flaps
+       33.505         33.505    Main_Wing,Ailerons
+      128.970        128.970    Main_Wing,Slats
+       50.060         50.060    VStab,Rudder   
