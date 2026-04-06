@@ -443,11 +443,39 @@ class VSP_Interface:
 class Weigh_Plane:
     # Class to calculate wing, hstab, vstab, and fuel tank weights/masses per Raymer's Eqns. 
     def __init__(self, manager: VSP_Interface):
+        self.manager = manager
+        self.config = manager.config
+        self.masses = {}
+        self.weights = {}
+
+    def Mass(self):
+        # Calculate mass of Wing, Wing Tank, Tails.  
         pass
+
+    def _WingMass(self):
+        # Estimate wing weight per Raymer's Eqns. (Internal method)
+        logging.info('Calculating Wing Weight...')
+        wing = self.manager.geom['wing']
+
+        self.S_csw = self.manager.ss_areas['Main_Wing,Ailerons'] + self.manager.ss_areas['Main_Wing,Flaps'] + self.manager.ss_areas['Main_Wing,Slats']
+
+        self.W_w_lbf = 0.0103 * (self.config.W_dg * self.config.N_z)**0.5 * wing['S_w']**0.622 * wing['ar_w']**0.785 * self.config.tc_rt**(-0.4) * (1 + wing['lamb_w'])**0.05 * (np.cos(np.deg2rad(wing['swp_mac25_w'])))**(-1.0) * self.S_csw**0.04
+        self.M_w_slug = self.W_w_lbf / 32.174
+        
+        logging.info(f'Wing Weight = {self.W_w_lbf:.2f} lbf; Wing Mass = {self.M_w_slug:.2f}slugs')
+
+    def _HStabMass(self):
+        # Estimate hstab mass per Raymer's Eqns. (Internal method)
+        logging.info('Calculating HStab Weight')
+        hstab = self.manager.geom['hstab']
+
+        
+
+        
 
 
 ########################
-# RUN FILE
+# RUN CONTROL
 ########################
 
 if __name__ == "__main__":
@@ -458,8 +486,9 @@ if __name__ == "__main__":
                     tail_foils=[r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A004.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A005.dat"])
     
     vspfile = VSP_Interface(config=config)
-    #vspfile.BuildPlane(include_fuse=True)
+    vspfile.BuildPlane(include_fuse=False)
     #vspfile.Tester()
-    #vspfile.Run_CompGeom()
+    vspfile.Run_CompGeom()
     #vspfile.Run_VSPAERO_NP()
-    #pprint.pprint(vspfile.comp_vols)
+    mass = Weigh_Plane(manager=vspfile)
+    mass._WingMass()
