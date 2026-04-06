@@ -1,0 +1,382 @@
+...Comp Geom...
+94 Num Comps
+179 Total Num Meshes
+156608 Total Num Tris
+
+Theo_Area   Wet_Area   Theo_Vol    Wet_Vol  Name
+  653.186    384.329    533.767    497.987  Fuselage       
+  107.850     38.704     56.906     32.382  Canopy         
+   12.287      0.000      2.740      0.000  Seat           
+   14.147      0.000      2.430      0.000  Seat           
+   19.807      0.000      3.081      0.000  Pilot (Female 20%)
+  146.509     81.687     54.738     48.393  Air Intake     
+  146.509     81.687     54.738     48.393  Air Intake     
+   84.052     12.621    -89.614    -94.820  S Ducts        
+   84.052     12.621    -89.614    -94.820  S Ducts        
+  176.068      0.031    161.688      0.045  Main Fuel Tank 
+   38.000      0.000     12.000      0.000  Main Fuel Tank 2
+   34.500      0.029      9.000      0.012  Main Fuel Tank 3
+   12.089      0.000      2.938      0.000  ANAPG-81 Radar 
+   19.250      0.000      4.875      0.000  Avioincs       
+    0.000      0.000     -0.000     -0.000  F100-PW-229 (Engine)
+  169.947      5.197    132.095      6.405  External Casing
+   36.294     34.116     93.123     93.123  Nozzle Exit    
+    3.023      3.023      0.372      0.372  Front Tire     
+    1.629      0.000      0.026      0.000  Front Tire     
+    3.023      3.023      0.372      0.372  Front Tire     
+    1.629      0.000      0.026      0.000  Front Tire     
+    4.370      3.026      0.250      0.250  Front Struct   
+    4.370      2.962      0.250      0.250  Diagonal Struct
+    3.023      0.000      0.372      0.000  Front Tire (Stored)
+    1.629      0.000      0.026      0.000  Front Tire (Stored)
+    3.023      0.000      0.372      0.000  Front Tire (Stored)
+    1.629      0.000      0.026      0.000  Front Tire (Stored)
+    4.370      0.000      0.250      0.000  Front Struct (Stored)
+    4.370      0.000      0.250      0.000  Diagonal Struct (Stored)
+    3.023      0.000      0.372      0.000  Aft Tires      
+    6.706      6.416      1.171      1.171  Aft Tires      
+    3.023      0.000      0.372      0.000  Aft Tires      
+    6.706      6.416      1.171      1.171  Aft Tires      
+    7.690      7.430      0.599      0.599  Aft Structs    
+    7.690      7.430      0.599      0.599  Aft Structs    
+    4.916      4.179      0.281      0.281  Aft Structs    
+    4.916      4.179      0.281      0.281  Aft Structs    
+    2.631      2.624      0.200      0.200  Aft Structs    
+    2.631      2.624      0.200      0.200  Aft Structs    
+    3.023      0.000      0.372      0.000  Aft Tires (Stored)
+    6.706      0.057      1.171      0.016  Aft Tires (Stored)
+    3.023      0.000      0.372      0.000  Aft Tires (Stored)
+    6.706      0.057      1.171      0.016  Aft Tires (Stored)
+    9.399      0.000      0.732      0.000  Aft Structs (Stored)
+    9.399      0.000      0.732      0.000  Aft Structs (Stored)
+    5.463      0.000      0.313      0.000  Aft Structs (Stored)
+    5.463      0.000      0.313      0.000  Aft Structs (Stored)
+   21.314      3.655      2.878      0.783  Center Pylon   
+  112.682    109.862     57.494     57.494  Center Drop Tank
+   11.845     10.383      1.552      1.552  Inward Pylons  
+   11.845     10.383      1.552      1.552  Inward Pylons  
+   21.500     14.667      3.750      3.750  MK-83 Adapter  
+   21.500     14.667      3.750      3.750  MK-83 Adapter  
+   27.029      9.413      6.066      3.350  MK-83 JDAM (1) 
+   27.029      9.413      6.066      3.350  MK-83 JDAM (1) 
+    1.211      1.067      0.038      0.038  Aft Fin 1      
+    1.211      1.067      0.038      0.038  Aft Fin 1      
+    1.211      0.002      0.038      0.000  Aft Fin 2      
+    1.211      0.002      0.038      0.000  Aft Fin 2      
+    1.211      1.104      0.038      0.038  Aft Fin 3      
+    1.211      1.104      0.038      0.038  Aft Fin 3      
+    1.211      0.535      0.038      0.026  Aft Fin 4      
+    1.211      0.535      0.038      0.026  Aft Fin 4      
+   27.029      9.771      6.066      3.477  MK-83 JDAM (2) 
+   27.029      9.771      6.066      3.477  MK-83 JDAM (2) 
+    1.211      0.007      0.038      0.000  Aft Fin 1      
+    1.211      0.007      0.038      0.000  Aft Fin 1      
+    1.211      1.104      0.038      0.038  Aft Fin 2      
+    1.211      1.104      0.038      0.038  Aft Fin 2      
+    1.211      0.509      0.038      0.025  Aft Fin 3      
+    1.211      0.509      0.038      0.025  Aft Fin 3      
+    1.211      1.067      0.038      0.038  Aft Fin 4      
+    1.211      1.067      0.038      0.038  Aft Fin 4      
+  112.682     88.311     57.494     57.494  Side Drop Tanks
+  112.682     88.311     57.494     57.494  Side Drop Tanks
+   10.375     10.375      1.358      1.358  Middle Pylons  
+   10.375     10.375      1.358      1.358  Middle Pylons  
+    8.906      8.906      1.164      1.164  Outward Pylons 
+    8.906      8.906      1.164      1.164  Outward Pylons 
+   20.992      5.317      0.082      0.033  AIM-120C (inner)
+   20.992      5.317      0.082      0.033  AIM-120C (inner)
+    1.211      1.100      0.038      0.038  Aft Fin 1      
+    1.211      1.100      0.038      0.038  Aft Fin 1      
+    1.211      1.024      0.038      0.038  Aft Fin 2      
+    1.211      1.024      0.038      0.038  Aft Fin 2      
+    1.211      1.211      0.038      0.038  Aft Fin 3      
+    1.211      1.211      0.038      0.038  Aft Fin 3      
+    1.211      1.211      0.038      0.038  Aft Fin 4      
+    1.211      1.211      0.038      0.038  Aft Fin 4      
+    0.303      0.000      0.005      0.000  Canard 1       
+    0.303      0.000      0.005      0.000  Canard 1       
+    0.303      0.000      0.005      0.000  Canard 2       
+    0.303      0.000      0.005      0.000  Canard 2       
+    0.303      0.067      0.005      0.002  Canard 3       
+    0.303      0.067      0.005      0.002  Canard 3       
+    0.303      0.067      0.005      0.002  Canard 4       
+    0.303      0.067      0.005      0.002  Canard 4       
+   20.992     12.117      0.039      0.036  AIM-120C (mid) 
+   20.992     12.117      0.039      0.036  AIM-120C (mid) 
+    1.211      0.562      0.038      0.028  Aft Fin 1      
+    1.211      0.562      0.038      0.028  Aft Fin 1      
+    1.211      0.560      0.038      0.028  Aft Fin 2      
+    1.211      0.560      0.038      0.028  Aft Fin 2      
+    1.211      1.211      0.038      0.038  Aft Fin 3      
+    1.211      1.211      0.038      0.038  Aft Fin 3      
+    1.211      1.211      0.038      0.038  Aft Fin 4      
+    1.211      1.211      0.038      0.038  Aft Fin 4      
+    0.303      0.000      0.005      0.000  Canard 1       
+    0.303      0.000      0.005      0.000  Canard 1       
+    0.303      0.000      0.005      0.000  Canard 2       
+    0.303      0.000      0.005      0.000  Canard 2       
+    0.303      0.200      0.005      0.005  Canard 3       
+    0.303      0.200      0.005      0.005  Canard 3       
+    0.303      0.200      0.005      0.005  Canard 4       
+    0.303      0.200      0.005      0.005  Canard 4       
+   20.992     20.094     -0.056     -0.086  AIM-120C (outer)
+   20.992     20.094     -0.056     -0.086  AIM-120C (outer)
+    1.211      1.211      0.038      0.038  Aft Fin 1      
+    1.211      1.211      0.038      0.038  Aft Fin 1      
+    1.211      1.211      0.038      0.038  Aft Fin 2      
+    1.211      1.211      0.038      0.038  Aft Fin 2      
+    1.211      1.211      0.038      0.038  Aft Fin 3      
+    1.211      1.211      0.038      0.038  Aft Fin 3      
+    1.211      1.211      0.038      0.038  Aft Fin 4      
+    1.211      1.211      0.038      0.038  Aft Fin 4      
+    0.303      0.303      0.005      0.005  Canard 1       
+    0.303      0.280      0.005      0.005  Canard 1       
+    0.303      0.291      0.005      0.005  Canard 2       
+    0.303      0.303      0.005      0.005  Canard 2       
+    0.303      0.283      0.005      0.005  Canard 3       
+    0.303      0.303      0.005      0.005  Canard 3       
+    0.303      0.303      0.005      0.005  Canard 4       
+    0.303      0.296      0.005      0.005  Canard 4       
+   15.531     11.960     -0.490     -0.636  AIM-9X Sidewinder
+   15.531     11.960     -0.490     -0.636  AIM-9X Sidewinder
+    1.211      1.211      0.038      0.038  Aft Fin 1      
+    1.211      1.211      0.038      0.038  Aft Fin 1      
+    1.211      1.211      0.038      0.038  Aft Fin 2      
+    1.211      1.211      0.038      0.038  Aft Fin 2      
+    1.211      1.211      0.038      0.038  Aft Fin 3      
+    1.211      1.211      0.038      0.038  Aft Fin 3      
+    1.211      1.211      0.038      0.038  Aft Fin 4      
+    1.211      1.211      0.038      0.038  Aft Fin 4      
+    0.303      0.263      0.005      0.005  Canard 1       
+    0.303      0.261      0.005      0.005  Canard 1       
+    0.303      0.260      0.005      0.005  Canard 2       
+    0.303      0.263      0.005      0.005  Canard 2       
+    0.303      0.000      0.005      0.000  Canard 3       
+    0.303      0.000      0.005      0.000  Canard 3       
+    0.303      0.001      0.005      0.000  Canard 4       
+    0.303      0.001      0.005      0.000  Canard 4       
+   27.029      5.106      6.066      1.817  MK-83 JDAM (inner)
+   27.029      5.106      6.066      1.817  MK-83 JDAM (inner)
+    1.211      0.000      0.038      0.000  Aft Fin 1      
+    1.211      0.000      0.038      0.000  Aft Fin 1      
+    1.211      0.000      0.038      0.000  Aft Fin 2      
+    1.211      0.000      0.038      0.000  Aft Fin 2      
+    1.211      0.000      0.038      0.000  Aft Fin 3      
+    1.211      0.000      0.038      0.000  Aft Fin 3      
+    1.211      0.000      0.038      0.000  Aft Fin 4      
+    1.211      0.000      0.038      0.000  Aft Fin 4      
+   27.029     26.318      6.066      6.066  MK-83 JDAM (mid)
+   27.029     26.318      6.066      6.066  MK-83 JDAM (mid)
+    1.211      1.067      0.038      0.038  Aft Fin 1      
+    1.211      1.067      0.038      0.038  Aft Fin 1      
+    1.211      1.104      0.038      0.038  Aft Fin 2      
+    1.211      1.104      0.038      0.038  Aft Fin 2      
+    1.211      1.024      0.038      0.038  Aft Fin 3      
+    1.211      1.024      0.038      0.038  Aft Fin 3      
+    1.211      0.989      0.038      0.038  Aft Fin 4      
+    1.211      0.989      0.038      0.038  Aft Fin 4      
+  467.833    363.344    110.385    110.385  Main_Wing      
+  467.833    363.344    110.385    110.385  Main_Wing      
+  157.876      0.000     38.651      0.000  Wing Fuel Tank 
+  157.876      0.000     38.651      0.000  Wing Fuel Tank 
+  128.031     97.325     15.842     15.842  HStab          
+  128.031     97.325     15.842     15.842  HStab          
+   99.377     93.346      8.317      8.317  VStab          
+   99.377     93.346      8.317      8.317  VStab          
+-------------------------------------------------
+ 4521.047   2450.689   1545.552   1030.950  Totals         
+
+Tag_Theo_Area   Tag_Wet_Area    Tag_Name
+      653.186        384.329    Fuselage_S_Surf0
+      107.850         38.704    Canopy_S_Surf0 
+       12.287          0.000    Seat_S_Surf0   
+       14.147          0.000    Seat_S_Surf1   
+       19.807          0.000    Pilot (Female 20%)_S_Surf0
+      146.509         81.687    Air Intake_S_Surf0
+      146.509         81.687    Air Intake_S_Surf1
+       84.052         12.621    S Ducts_S_Surf0
+       84.052         12.621    S Ducts_S_Surf1
+      176.068          0.031    Main Fuel Tank_S_Surf0
+       38.000          0.000    Main Fuel Tank 2_S_Surf0
+       34.500          0.029    Main Fuel Tank 3_S_Surf0
+       12.089          0.000    ANAPG-81 Radar_S_Surf0
+       19.250          0.000    Avioincs_S_Surf0
+        0.000          0.000    F100-PW-229 (Engine)_S_Surf0
+      169.947          5.197    External Casing_S_Surf0
+       36.294         34.116    Nozzle Exit_S_Surf0
+        3.023          3.023    Front Tire _S_Surf0
+        1.629          0.000    Front Tire _S_Surf1
+        3.023          3.023    Front Tire _S_Surf2
+        1.629          0.000    Front Tire _S_Surf3
+        4.370          3.026    Front Struct_S_Surf0
+        4.370          2.962    Diagonal Struct_S_Surf0
+        3.023          0.000    Front Tire (Stored)_S_Surf0
+        1.629          0.000    Front Tire (Stored)_S_Surf1
+        3.023          0.000    Front Tire (Stored)_S_Surf2
+        1.629          0.000    Front Tire (Stored)_S_Surf3
+        4.370          0.000    Front Struct (Stored)_S_Surf0
+        4.370          0.000    Diagonal Struct (Stored)_S_Surf0
+        3.023          0.000    Aft Tires_S_Surf0
+        6.706          6.416    Aft Tires_S_Surf1
+        3.023          0.000    Aft Tires_S_Surf2
+        6.706          6.416    Aft Tires_S_Surf3
+        7.690          7.430    Aft Structs_S_Surf0
+        7.690          7.430    Aft Structs_S_Surf1
+        4.916          4.179    Aft Structs_S_Surf0
+        4.916          4.179    Aft Structs_S_Surf1
+        2.631          2.624    Aft Structs_S_Surf0
+        2.631          2.624    Aft Structs_S_Surf1
+        3.023          0.000    Aft Tires (Stored)_S_Surf0
+        6.706          0.057    Aft Tires (Stored)_S_Surf1
+        3.023          0.000    Aft Tires (Stored)_S_Surf2
+        6.706          0.057    Aft Tires (Stored)_S_Surf3
+        9.399          0.000    Aft Structs (Stored)_S_Surf0
+        9.399          0.000    Aft Structs (Stored)_S_Surf1
+        5.463          0.000    Aft Structs (Stored)_S_Surf0
+        5.463          0.000    Aft Structs (Stored)_S_Surf1
+       21.314          3.655    Center Pylon_S_Surf0
+      112.682        109.862    Center Drop Tank_S_Surf0
+       11.845         10.383    Inward Pylons_S_Surf0
+       11.845         10.383    Inward Pylons_S_Surf1
+       21.500         14.667    MK-83 Adapter_S_Surf0
+       21.500         14.667    MK-83 Adapter_S_Surf1
+       27.029          9.413    MK-83 JDAM (1)_S_Surf0
+       27.029          9.413    MK-83 JDAM (1)_S_Surf1
+        1.211          1.067    Aft Fin 1_S_Surf0
+        1.211          1.067    Aft Fin 1_S_Surf1
+        1.211          0.002    Aft Fin 2_S_Surf0
+        1.211          0.002    Aft Fin 2_S_Surf1
+        1.211          1.104    Aft Fin 3_S_Surf0
+        1.211          1.104    Aft Fin 3_S_Surf1
+        1.211          0.535    Aft Fin 4_S_Surf0
+        1.211          0.535    Aft Fin 4_S_Surf1
+       27.029          9.771    MK-83 JDAM (2)_S_Surf0
+       27.029          9.771    MK-83 JDAM (2)_S_Surf1
+        1.211          0.007    Aft Fin 1_S_Surf0
+        1.211          0.007    Aft Fin 1_S_Surf1
+        1.211          1.104    Aft Fin 2_S_Surf0
+        1.211          1.104    Aft Fin 2_S_Surf1
+        1.211          0.509    Aft Fin 3_S_Surf0
+        1.211          0.509    Aft Fin 3_S_Surf1
+        1.211          1.067    Aft Fin 4_S_Surf0
+        1.211          1.067    Aft Fin 4_S_Surf1
+      112.682         88.311    Side Drop Tanks_S_Surf0
+      112.682         88.311    Side Drop Tanks_S_Surf1
+       10.375         10.375    Middle Pylons_S_Surf0
+       10.375         10.375    Middle Pylons_S_Surf1
+        8.906          8.906    Outward Pylons_S_Surf0
+        8.906          8.906    Outward Pylons_S_Surf1
+       20.992          5.317    AIM-120C (inner)_S_Surf0
+       20.992          5.317    AIM-120C (inner)_S_Surf1
+        1.211          1.100    Aft Fin 1_S_Surf0
+        1.211          1.100    Aft Fin 1_S_Surf1
+        1.211          1.024    Aft Fin 2_S_Surf0
+        1.211          1.024    Aft Fin 2_S_Surf1
+        1.211          1.211    Aft Fin 3_S_Surf0
+        1.211          1.211    Aft Fin 3_S_Surf1
+        1.211          1.211    Aft Fin 4_S_Surf0
+        1.211          1.211    Aft Fin 4_S_Surf1
+        0.303          0.000    Canard 1_S_Surf0
+        0.303          0.000    Canard 1_S_Surf1
+        0.303          0.000    Canard 2_S_Surf0
+        0.303          0.000    Canard 2_S_Surf1
+        0.303          0.067    Canard 3_S_Surf0
+        0.303          0.067    Canard 3_S_Surf1
+        0.303          0.067    Canard 4_S_Surf0
+        0.303          0.067    Canard 4_S_Surf1
+       20.992         12.117    AIM-120C (mid)_S_Surf0
+       20.992         12.117    AIM-120C (mid)_S_Surf1
+        1.211          0.562    Aft Fin 1_S_Surf0
+        1.211          0.562    Aft Fin 1_S_Surf1
+        1.211          0.560    Aft Fin 2_S_Surf0
+        1.211          0.560    Aft Fin 2_S_Surf1
+        1.211          1.211    Aft Fin 3_S_Surf0
+        1.211          1.211    Aft Fin 3_S_Surf1
+        1.211          1.211    Aft Fin 4_S_Surf0
+        1.211          1.211    Aft Fin 4_S_Surf1
+        0.303          0.000    Canard 1_S_Surf0
+        0.303          0.000    Canard 1_S_Surf1
+        0.303          0.000    Canard 2_S_Surf0
+        0.303          0.000    Canard 2_S_Surf1
+        0.303          0.200    Canard 3_S_Surf0
+        0.303          0.200    Canard 3_S_Surf1
+        0.303          0.200    Canard 4_S_Surf0
+        0.303          0.200    Canard 4_S_Surf1
+       20.992         20.094    AIM-120C (outer)_S_Surf0
+       20.992         20.094    AIM-120C (outer)_S_Surf1
+        1.211          1.211    Aft Fin 1_S_Surf0
+        1.211          1.211    Aft Fin 1_S_Surf1
+        1.211          1.211    Aft Fin 2_S_Surf0
+        1.211          1.211    Aft Fin 2_S_Surf1
+        1.211          1.211    Aft Fin 3_S_Surf0
+        1.211          1.211    Aft Fin 3_S_Surf1
+        1.211          1.211    Aft Fin 4_S_Surf0
+        1.211          1.211    Aft Fin 4_S_Surf1
+        0.303          0.303    Canard 1_S_Surf0
+        0.303          0.280    Canard 1_S_Surf1
+        0.303          0.291    Canard 2_S_Surf0
+        0.303          0.303    Canard 2_S_Surf1
+        0.303          0.283    Canard 3_S_Surf0
+        0.303          0.303    Canard 3_S_Surf1
+        0.303          0.303    Canard 4_S_Surf0
+        0.303          0.296    Canard 4_S_Surf1
+       15.531         11.960    AIM-9X Sidewinder_S_Surf0
+       15.531         11.960    AIM-9X Sidewinder_S_Surf1
+        1.211          1.211    Aft Fin 1_S_Surf0
+        1.211          1.211    Aft Fin 1_S_Surf1
+        1.211          1.211    Aft Fin 2_S_Surf0
+        1.211          1.211    Aft Fin 2_S_Surf1
+        1.211          1.211    Aft Fin 3_S_Surf0
+        1.211          1.211    Aft Fin 3_S_Surf1
+        1.211          1.211    Aft Fin 4_S_Surf0
+        1.211          1.211    Aft Fin 4_S_Surf1
+        0.303          0.263    Canard 1_S_Surf0
+        0.303          0.261    Canard 1_S_Surf1
+        0.303          0.260    Canard 2_S_Surf0
+        0.303          0.263    Canard 2_S_Surf1
+        0.303          0.000    Canard 3_S_Surf0
+        0.303          0.000    Canard 3_S_Surf1
+        0.303          0.001    Canard 4_S_Surf0
+        0.303          0.001    Canard 4_S_Surf1
+       27.029          5.106    MK-83 JDAM (inner)_S_Surf0
+       27.029          5.106    MK-83 JDAM (inner)_S_Surf1
+        1.211          0.000    Aft Fin 1_S_Surf0
+        1.211          0.000    Aft Fin 1_S_Surf1
+        1.211          0.000    Aft Fin 2_S_Surf0
+        1.211          0.000    Aft Fin 2_S_Surf1
+        1.211          0.000    Aft Fin 3_S_Surf0
+        1.211          0.000    Aft Fin 3_S_Surf1
+        1.211          0.000    Aft Fin 4_S_Surf0
+        1.211          0.000    Aft Fin 4_S_Surf1
+       27.029         26.318    MK-83 JDAM (mid)_S_Surf0
+       27.029         26.318    MK-83 JDAM (mid)_S_Surf1
+        1.211          1.067    Aft Fin 1_S_Surf0
+        1.211          1.067    Aft Fin 1_S_Surf1
+        1.211          1.104    Aft Fin 2_S_Surf0
+        1.211          1.104    Aft Fin 2_S_Surf1
+        1.211          1.024    Aft Fin 3_S_Surf0
+        1.211          1.024    Aft Fin 3_S_Surf1
+        1.211          0.989    Aft Fin 4_S_Surf0
+        1.211          0.989    Aft Fin 4_S_Surf1
+      323.829        220.536    Main_Wing_S_Surf0
+      323.829        220.536    Main_Wing_S_Surf1
+      157.876          0.000    Wing Fuel Tank_S_Surf0
+      157.876          0.000    Wing Fuel Tank_S_Surf1
+      128.031         97.325    HStab_S_Surf0  
+      128.031         97.325    HStab_S_Surf1  
+       74.346         68.316    VStab_S_Surf0  
+       74.346         68.316    VStab_S_Surf1  
+       62.769         62.769    Main_Wing_S_Surf0,Flaps
+       16.750         16.750    Main_Wing_S_Surf0,Ailerons
+       64.484         63.288    Main_Wing_S_Surf0,Slats
+       62.769         62.769    Main_Wing_S_Surf1,Flaps
+       16.750         16.750    Main_Wing_S_Surf1,Ailerons
+       64.484         63.288    Main_Wing_S_Surf1,Slats
+       25.030         25.030    VStab_S_Surf0,Rudder
+       25.030         25.030    VStab_S_Surf1,Rudder
+
+ SS_Theo_Area    SS_Wet_Area    SS_Name
+      125.539        125.539    Main_Wing,Flaps
+       33.500         33.500    Main_Wing,Ailerons
+      128.968        126.576    Main_Wing,Slats
+       50.060         50.060    VStab,Rudder   
