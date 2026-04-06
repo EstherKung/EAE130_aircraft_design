@@ -128,6 +128,10 @@ class planform:
         self.quart_mac_x = self.y_bar # X & Y are switched here for plotting.
         self.quart_mac_y = -(self.y_bar * self.LE_s_bar + 0.25 * self.c_bar + self.L_offset)
 
+        # 25% MAC Wing Sweep
+        self.quart_c_r = self.c_r / 4 + self.L_offset
+        self.quart_mac_swp = np.rad2deg(np.arctan((abs(self.quart_mac_y) - self.quart_c_r) / self.y_bar))
+
     def set_global_loc(self, new_L_offset):
         # Method to modify the planform LE location (use to move tail surfaces to correct location)
         self.L_offset = new_L_offset
@@ -372,6 +376,7 @@ class Aircraft:
                 'c_r_w': wing.c_r,
                 'c_t_w': wing.c_t,
                 'swp_w': wing.LE_swp,
+                'swp_mac25_w': wing.quart_mac_swp,
                 'b_fold': wing.fold_loc,
                 "flap_1_span": wing.ss['flap']['b1_flap'],
                 "flap_2_span": wing.ss['flap']['b2_flap'],
@@ -407,6 +412,7 @@ class Aircraft:
                 "c_r_VT": vstab.c_r,
                 "c_t_VT": vstab.c_t,
                 "swp_VT": vstab.LE_swp,
+                "swp_25mac_VT": vstab.quart_mac_swp,
                 "lam_VT": vstab.lam,
                 "L_VT": vstab.L_VT,
                 "rud_c_frac": vstab.ss['rudder']['c1_rud'], ### COME BACK AND CHANGE THIS ONCE WE TEST
@@ -455,3 +461,4 @@ plt.show()
 # Export as json
 F24HH.json_export(fname='airplane_geom2.json', dir=r"C:\Users\14153\Desktop\Skewl\EAE 130\Python\EAE130_aircraft_design")
 
+pprint.pprint(vars(F24HH.surfaces['HStab']))
