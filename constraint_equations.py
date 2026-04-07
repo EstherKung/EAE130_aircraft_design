@@ -25,9 +25,9 @@ CLmax = {
 }
 
 AERO_DEF = {
-    'AR' : 2.85,
+    'AR' : 3.5,
     'e' : 0.825,
-    'c_Do' :  0.01378,
+    'c_Do' :  0.02190,
 }
 
 # %% [markdown]
@@ -42,7 +42,7 @@ AERO_DEF = {
 
 # %%
 def takeoff(V_end, V_wod=0, V_thrust=7, rho=2.19e-3, 
-            CLmax_takeoff=CLmax['takeoff'], plot_styling={}):
+            CLmax_takeoff=CLmax['takeoff'], plot_styling={},fill=True):
     
     V_end_ft = V_end * 1.6878 # convert from kts to ft/s
     V_thrust = 7 * 1.6878
@@ -53,7 +53,8 @@ def takeoff(V_end, V_wod=0, V_thrust=7, rho=2.19e-3,
     if not plot_styling:
         return WL
     else: 
-        plt.fill_betweenx((0, 50), WL, 300, color='gainsboro')
+        if fill:
+            plt.fill_betweenx((0, 50), WL, 300, color='gainsboro')
         return plt.axvline(x=WL, label= f'catapult endspeed {V_end} kt', **plot_styling)
 
 # %% [markdown]
@@ -71,7 +72,7 @@ def stall(V_stall, alt, rho=rho,
           CLmax=CLmax['approach'], plot_styling={}):
     rho = rho(alt)
     V = V_stall * 1.6878 # convert from kts to ft/s
-    WL = 1/2 * rho * V**2 * CLmax
+    WL = 1/2 * rho * V**2 * CLmax #/0.8
     if not plot_styling:
         return WL 
     else:
@@ -104,25 +105,38 @@ def climb(WL, vertical_climb_rate, V_horizontal, c_Do = AERO_DEF['c_Do'], e = AE
 # $$\frac{T}{W} = \frac{qC_\mathrm{Dmin}}{\left(W/S\right)}+ \frac{k}{q}\left(\frac{W}{S}\right)\left[1 - \left(\frac{\mathrm{RoC}}{V}\right)^2\right] + K_\mathrm{a}\frac{\mathrm{RoC}}{V}$$
 
 # %%
-def climb_curve(WL, vertical_climb_rate, V_horizontal, g=32.2, c_Do = AERO_DEF['c_Do'], e = AERO_DEF['e'], AR = AERO_DEF['AR'], rho=rho, plot_styling={}):
-    V = V_horizontal * 1.6878 # convert from kts to ft/s
-    RoC = vertical_climb_rate/60 # convert from ft/min to ft/s
+# def climb_curve(WL, vertical_climb_rate, V_horizontal, g=32.2, c_Do = AERO_DEF['c_Do'], e = AERO_DEF['e'], AR = AERO_DEF['AR'], rho=rho, plot_styling={}):
+#     V = V_horizontal * 1.6878 # convert from kts to ft/s
+#     RoC = vertical_climb_rate/60 # convert from ft/min to ft/s
 
-    #K_a = 1 + V/g * dVdh
+#     #K_a = 1 + V/g * dVdh
 
-    K_a = 1
+#     K_a = 1
     
-    q = 1/2 * rho(0) * V**2 
+#     q = 1/2 * rho(0) * V**2 
     
-    k = 1/(np.pi * e * AR)
+#     k = 1/(np.pi * e * AR)
 
-    TW = q*c_Do/WL + k/q * WL * [1 - (RoC/V)**2] + K_a * (RoC/V)
+#     TW = q*c_Do/WL + k/q * WL * [1 - (RoC/V)**2] + K_a * (RoC/V)
     
+#     if not plot_styling:
+#         return TW
+#     else:
+#         return plt.plot(TW, label=f"climb rate at {vertical_climb_rate} ft/min", **plot_styling)
+# %%
+## The climb ceiling (the previous two is not suitable for this application)
+
+def service_ceiling(WL, RoC, 
+                    C_Do = AERO_DEF['c_Do'], e = AERO_DEF['e'], AR = AERO_DEF['AR'], rho=rho, plot_styling={}):
+    rho = rho(50000);
+    k = 1 / (np.pi * e * AR)
+    RCmax = RoC / 60 # convert from ft/min to ft/s
+
+    TW = RCmax * (C_Do/k)**(1/4) * (rho/2)**(1/2) * (WL)**(-1/2) + 2*(k*C_Do)**(1/2)
     if not plot_styling:
         return TW
-    else:
-        return plt.plot(TW, label=f"climb rate at {vertical_climb_rate} ft/min", **plot_styling)
-
+    else: 
+        return plt.plot(TW, label=f'service ceiling at 50k ft, climb rate {RoC} ft/min', **plot_styling)
 # %% [markdown]
 # ## Sustained Turn
 # from Raymer (5.17), $ \dot{\psi}$ represents turn rate in rad/sec.
@@ -147,7 +161,7 @@ def climb_curve(WL, vertical_climb_rate, V_horizontal, g=32.2, c_Do = AERO_DEF['
 # %%
 def sustained_turn(WL, Ma, alt, deg=8.0, g=32.2, a=a, rho=rho,
                     AR=AERO_DEF['AR'], e=AERO_DEF['e'], c_Do=AERO_DEF['c_Do'], 
-                    mid_mission_weight_fraction=1, plot_styling={}):
+                    mid_mission_weight_fraction=1-0.1867, plot_styling={}, fill=True):
     a = a(alt); rho = rho(alt)
     V = Ma * a # ft/s
     q = 1/2 * rho * V**2 #dynamic pressure
@@ -160,6 +174,8 @@ def sustained_turn(WL, Ma, alt, deg=8.0, g=32.2, a=a, rho=rho,
     if not plot_styling:
         return TW 
     else: 
+        if fill == True:
+            plt.fill_between(WL, TW, 0, color='gainsboro')
         return plt.plot(WL, TW, label=rf"sustained turn at {deg}$^\circ$/sec", **plot_styling)
 
 # %% [markdown]
@@ -192,7 +208,7 @@ def load_factor(WL, Ma, alt, n, g=32.2, a=a, rho=rho,
         if fill == True:
             plt.fill_between(WL, TW, 0, color='gainsboro')
         return plt.plot(WL, TW, label=f"load factor {n}g", **plot_styling)
-
+# %%
 def instant_load_factor(Ma, alt, n, a=a, rho=rho,  
                         CL=CLmax['takeoff'], 
                         plot_styling={}):
@@ -200,7 +216,7 @@ def instant_load_factor(Ma, alt, n, a=a, rho=rho,
     V = Ma * a
     q = 1/2 * rho * V**2 # 
 
-    WL = q * CL / n
+    WL = q * CL / (n*0.85)
 
     if not plot_styling:
         return WL

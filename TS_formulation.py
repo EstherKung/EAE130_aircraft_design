@@ -100,7 +100,9 @@ def weight_convergence(W_guess, T_0, S,
         W_guess = W_total
         i +=1
     converged = (delta <= tol)
-
+    print(W_total, W_empty, W_fuel)
+    if not converged:
+        print('asdlkgj??')
     W = W_guess * weight_fraction(W_guess)
     return W, converged, converge_history
 
@@ -108,9 +110,9 @@ def weight_convergence(W_guess, T_0, S,
 # ## Outer Loop
 
 # %%
-def thrust_from_wing_area(W_guess, S_wing, T_0, segment_function, mission, relax=1.0, tol =1e-3, max_iter=100):
+def thrust_from_wing_area(W_guess, S_wing, T_0, segment_function, mission, relax=1.0, tol =1e-3, max_iter=200):
     
-    S = {'wing': S_wing, 'htail': 78.41, 'vtail': 78.41, 'fuse_wet': 529.81}
+    S = {'wing': S_wing, 'htail': 123.10441485216471, 'vtail': 107.19521577810403, 'fuse_wet': 702.3,}
     T_total = T_0
 
     for k in range(max_iter):
@@ -149,7 +151,7 @@ def WS_line(W_guess, T_0, segment_function, mission,
             unloaded_weight=W_fixed_payload['end'], # landing constraint  
             S_wing = 300, plot_styling={}, fill=False):
 
-    S_guess = {'wing': S_wing, 'htail': 78.41, 'vtail': 78.41, 'fuse_wet': 529.81}
+    S_guess = {'wing': S_wing,  'htail': 123.10441485216471, 'vtail': 107.19521577810403, 'fuse_wet': 702.3,}
 
     WL = segment_function
     W = [weight_convergence(W_guess=W_guess, T_0=T_0, S=S_guess, mission=mission)[0] - unloaded_weight for T_0 in T_0]
