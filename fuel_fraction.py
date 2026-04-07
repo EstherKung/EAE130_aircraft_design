@@ -1,164 +1,182 @@
 # %%
 import numpy as np
-# Ryuya Iwase
-# %%
+
+# Basic performance inputs
 performance = {
-    "M_cruise"  : 0.85,     # Cruise mach speed
-    "h_cruise"  : 35000,    # Cruise altitude, FT
-    "a_cruise"  : 972.6,    # Speed of sound at cruise, FT/s
-    "R_cruise"  : 700,      # Cruise distance (Combat Radius), Nautical Miles
-    "E_loiter"  : 20,       # Loiter time, min
-    "M_dash"    : 0.85,     # Dash mach speed
-    "a_dash"    : 1116,     # Speed of sound at SL, FT/s
-    "R_dash"    : 100,      # Dash distnace, Nautical Miles
-    "C_cruise"  : 0.8,      # Engine SFC in Cruise, 1/hr
-    "C_dash"    : 1.0,      # Engine SFC in Dash (Max-non-afterburning), 1/hr
-    "C_loiter"  : 0.7,      # Engine SFC in Loiter, 1/hr
-    "C_after"   : 1.8,      # Engine SFC with Afterburner, 1/hr
-    "E_combat"  : 2,        # Combat time, min
-    "AR"        : 2.85,        # Estimated Aspect Ratio
-    "Swet_Sref" : 4.3,        # Guess of Wetted Area Ratio
-    "K_LD"      : 14,       # Factor in calculating L/D_max
+    "M_cruise": 0.85,
+    "h_cruise": 35000,
+    "a_cruise": 972.6,
+    "R_cruise": 700,
+    "E_loiter": 20,
+    "M_dash": 0.85,
+    "a_dash": 1116,
+    "R_dash": 100,
+    "C_cruise": 0.8,
+    "C_dash": 1.0,
+    "C_loiter": 0.7,
+    "C_after": 1.8,
+    "C_climb": 0.9,
+    "C_taxi": 0.3,
+    "C_to": 1.0,
+    "E_combat": 2,
+    "AR": 2.85,
+    "Swet_Sref": 4.3,
+    "K_LD": 14,
+    "CD0": 0.015,
+    "e_oswald": 0.85,
+    "WS": 70,
+    "TW": 1.0,
+    "n_climb": 10,
+    "n_cruise": 10,
 }
 
-# %%
+# Mission sequences
 mission_sequence = {
-    'strike': [1, 2, 3, 4, 5, 2, 3, 4, 7, 8], 
-    # ^ TO, Climb, Cruise, Descent, SL Dash, Climb, Cruise, Descent, Loiter, Land. (The Strike mission)
+    'strike': [1, 2, 3, 4, 5, 2, 3, 4, 7, 8],
     'strike_mid_mission': [1, 2, 3, 4, 5],
     'strike_end_mission': [1, 2, 3, 4, 5, 2, 3, 4],
-    
     'combat': [1, 2, 3, 6, 3, 4, 7, 8],
-    # ^ TO, Cimb, Cruise, Combat, Cruise, Descent, Loiter, Land. (Combat Mission)
-    'combat_mid_mission': [1, 2, 3,],
+    'combat_mid_mission': [1, 2, 3],
     'combat_end_mission': [1, 2, 3, 6, 3, 4, 7],
-
-    'off_mission': [1, 2, 4, 2, 4, 2, 7, 4, 8]
-    # ^ TO, Climb, Descent, Climb, Descent, Climb, Loiter, Descent, Land
 }
 
 empty_statistic = {
     "A": 2.34,
     "C": -0.13,
-    "MTOW_guess": 40000 
+    "MTOW_guess": 40000
 }
+
+# %%
+def isa_atmosphere(h_ft):
+    T0, rho0 = 518.67, 0.002377
+    L, h_tp = 0.003566, 36089.0
+    T_tp = 389.97
+    R, g, gam = 1716.49, 32.174, 1.4
+
+    if h_ft <= h_tp:
+        T = T0 - L * h_ft
+        sigma = (T / T0) ** 4.2561
+    else:
+        sigma_tp = (T_tp / T0) ** 4.2561
+        T = T_tp
+        sigma = sigma_tp * np.exp(-g / (R * T_tp) * (h_ft - h_tp))
+
+    rho = sigma * rho0
+    a = np.sqrt(gam * R * T)
+    return rho, a
 
 # %%
 def fuel_frac(mission_sequence, A, C, MTOW_guess):
-    # Fixed Fuel Fractions
-    ff_to = 0.970
-    ff_climb = 0.985
+
+    p = performance
+
+    k = 1.0 / (np.pi * p["AR"] * p["e_oswald"])
+    Sref = MTOW_guess / p["WS"]
+    g = 32.174
+
+    V_cruise = p["M_cruise"] * p["a_cruise"]
+    V_dash = p["M_dash"] * p["a_dash"]
+
+    rho_sl, _ = isa_atmosphere(0.0)
+    rho_cruise, _ = isa_atmosphere(p["h_cruise"])
+
+    LD_max = p["K_LD"] * np.sqrt(p["AR"] / p["Swet_Sref"])
+
+    # takeoff (taxi + TO burn)
+    ff_takeoff = (1 - (15*60)*(p["C_taxi"]/3600)*(0.05*p["TW"])) * \
+                 (1 - (60)*(p["C_to"]/3600)*(p["TW"]))
+
+    def compute_climb(W_start_frac):
+        h_steps = np.linspace(0, p["h_cruise"], p["n_climb"] + 1)
+        W_frac, x_total = 1.0, 0.0
+
+        for i in range(len(h_steps) - 1):
+            h_lo, h_hi = h_steps[i], h_steps[i+1]
+            h_mid = 0.5*(h_lo + h_hi)
+            dh = h_hi - h_lo
+
+            W_curr = MTOW_guess * W_start_frac * W_frac
+            rho_mid, _ = isa_atmosphere(h_mid)
+
+            TW_alt = p["TW"] * (rho_mid / rho_sl)
+
+            disc = TW_alt**2 + 12*p["CD0"]*k
+            V_sq = (W_curr/Sref)/(3*rho_mid*p["CD0"]) * (TW_alt + np.sqrt(max(disc,0)))
+            V = np.sqrt(max(V_sq, 1.0))
+
+            CL = 2*W_curr/(rho_mid*V**2*Sref)
+            CD = p["CD0"] + k*CL**2
+            D = 0.5*rho_mid*V**2*Sref*CD
+
+            DoverT = D/(TW_alt*W_curr)
+            one_minus = max(1 - DoverT, 1e-3)
+
+            dhe = dh  # simplified energy height change
+            ff = np.exp(-(p["C_climb"]/3600)*dhe/(V*one_minus))
+            W_frac *= ff
+
+            excess = TW_alt - D/W_curr
+            if excess > 1e-6:
+                x_total += dh / excess
+
+        return W_frac, x_total
+
+    def compute_cruise(W_start_frac, R_nm, x_credit=0.0):
+        R_ft = max(R_nm*6076.12 - x_credit, 0.0)
+        dR = R_ft / p["n_cruise"]
+        C_s = p["C_cruise"]/3600
+        W_frac = 1.0
+
+        for _ in range(p["n_cruise"]):
+            W_curr = MTOW_guess * W_start_frac * W_frac
+            CL = 2*W_curr/(rho_cruise*V_cruise**2*Sref)
+            CD = p["CD0"] + k*CL**2
+            LD = CL/CD
+            W_frac *= np.exp(-dR*C_s/(V_cruise*LD))
+
+        return W_frac
+
+    # other phases
+    ff_dash = np.exp(-(p["R_dash"]*6076.12*p["C_dash"]/3600)/(V_dash*(0.7*LD_max)))
+    ff_combat = np.exp(-(p["E_combat"]*60*p["C_after"]/3600)/(0.2*LD_max))
+    ff_loiter = np.exp(-(p["E_loiter"]*60*p["C_loiter"]/3600)/(LD_max))
+
     ff_descent = 0.99
     ff_land = 0.995
 
+    CFF = 1.0
+    x_credit = 0.0
 
-    # Cruise Fuel Fraction
-    def cruise_wf(M_cruise, h_cruise, a_cruise, R_cruise, E_loiter, M_dash, a_dash, R_dash, C_cruise, C_dash, C_loiter, C_after, E_combat,
-               AR, Swet_Sref, K_LD):
-        R_cruise_ft = R_cruise * 6076.12
-        V_cruise = M_cruise * a_cruise
+    for m in mission_sequence:
+        if m == 1:
+            CFF *= ff_takeoff
+        elif m == 2:
+            ff, x = compute_climb(CFF)
+            CFF *= ff
+            x_credit = x
+        elif m == 3:
+            CFF *= compute_cruise(CFF, p["R_cruise"], x_credit)
+            x_credit = 0.0
+        elif m == 4:
+            CFF *= ff_descent
+        elif m == 5:
+            CFF *= ff_dash
+        elif m == 6:
+            CFF *= ff_combat
+        elif m == 7:
+            CFF *= ff_loiter
+        elif m == 8:
+            CFF *= ff_land
 
-        LD_max = K_LD * np.sqrt(AR / Swet_Sref)
-        LD_cruise = 0.866 * LD_max
-
-        C_cruise_s = C_cruise / 3600
-
-        wf_cruise = np.exp((-R_cruise_ft * C_cruise_s) / (V_cruise * LD_cruise))
-        
-        return wf_cruise
-    
-    ff_cruise = cruise_wf(**performance)
-
-
-    # Dash Fuel Fraction
-    def dash_wf(M_cruise, h_cruise, a_cruise, R_cruise, E_loiter, M_dash, a_dash, R_dash, C_cruise, C_dash, C_loiter, C_after, E_combat,
-             AR, Swet_Sref, K_LD):
-        V_dash = M_dash * a_dash
-        R_dash_ft = R_dash * 6076.12
-        C_dash_s = C_dash / 3600
-        
-        LD_max = K_LD * np.sqrt(AR / Swet_Sref)
-        LD_dash = 0.700 * LD_max
-
-        wf_dash = np.exp((-R_dash_ft * C_dash_s) / (V_dash * LD_dash))    
-        return wf_dash
-    
-    ff_dash = dash_wf(**performance)
-
-
-    # Loiter Fuel Fraction
-    def loiter_wf(M_cruise, h_cruise, a_cruise, R_cruise, E_loiter, M_dash, a_dash, R_dash, C_cruise, C_dash, C_loiter, C_after, E_combat,
-               AR, Swet_Sref, K_LD):
-        E_loiter_s = E_loiter * 60
-        LD_max = K_LD * np.sqrt(AR / Swet_Sref)
-        C_loiter_s = C_loiter / 3600
-
-        wf_loiter = np.exp((-E_loiter_s * C_loiter_s) / LD_max)
-        return wf_loiter
-    
-    ff_loiter = loiter_wf(**performance)
-
-
-    # Combat Fuel Fraction
-    def combat_wf(M_cruise, h_cruise, a_cruise, R_cruise, E_loiter, M_dash, a_dash, R_dash, C_cruise, C_dash, C_loiter, C_after, E_combat,
-               AR, Swet_Sref, K_LD):
-        E_combat_s = E_combat * 60
-        C_after_s = C_after / 3600
-        LD_max = K_LD * np.sqrt(AR / Swet_Sref)
-        LD_combat = LD_max * 0.2
-
-        wf_combat = np.exp((-E_combat_s * C_after_s) / LD_combat)
-        return wf_combat
-    
-    ff_combat = combat_wf(**performance)
-
-    # mid mission fuel fraction keeps track of the fuel fraction mid-mission, after descent stages
-    MMF = np.empty(2)
-
-    ## Combined Mission Fuel Fraction
-    CFF = 0
-    counter = 0
-    for i, m_seq in enumerate(mission_sequence):
-        if m_seq == 1:
-            #print(f"Takeoff Fuel Fraction is: {ff_to}")
-            CFF = ff_to
-        if m_seq == 2:
-            #print(f"Climb Fuel Fraction is: {ff_climb}")
-            CFF = CFF * ff_climb
-        if m_seq == 3:
-            #print(f"Cruise Fuel Fraction is: {np.round(ff_cruise, 3)}")
-            CFF = CFF * ff_cruise
-            MMF[counter] = CFF
-            counter = counter + 1
-            #print(f"Mid mission fuel fraction is: {np.round(MMF, 3)}")
-        if m_seq == 4:
-            #print(f"Descent Fuel Fraction is: {ff_descent}")
-            CFF = CFF * ff_descent
-        if m_seq == 5:
-            #print(f"SL Dash Fuel Fraction is: {np.round(ff_dash, 3)}")
-            CFF = CFF * ff_dash
-        if m_seq == 6:
-            #print(f"Combat Fuel Fraction is: {np.round(ff_combat, 3)}")
-            CFF = CFF * ff_combat
-        if m_seq == 7:
-            #print(f"Loiter Fuel Fraction is: {np.round(ff_loiter, 3)}")
-            CFF = CFF * ff_loiter
-        if m_seq == 8:
-            #print(f"Landing Fuel Fraction is: {ff_land}")
-            CFF = CFF * ff_land
-
-        TFF = 1.06 * (1 - CFF)
-
-    return TFF
+    return 1.06 * (1 - CFF)
 
 # %%
 fuel_fraction = {
-    'strike': fuel_frac(mission_sequence=mission_sequence['strike'], **empty_statistic),
-    'strike_mid_mission': fuel_frac(mission_sequence=mission_sequence['strike_mid_mission'], **empty_statistic),
-    'combat': fuel_frac(mission_sequence=mission_sequence['combat'], **empty_statistic),
-    'combat_mid_mission': fuel_frac(mission_sequence=mission_sequence['combat_mid_mission'], **empty_statistic),
-    'strike_end_mission': fuel_frac(mission_sequence=mission_sequence['strike_end_mission'], **empty_statistic),
-    'combat_end_mission': fuel_frac(mission_sequence=mission_sequence['combat_end_mission'], **empty_statistic),
+    k: fuel_frac(v, **empty_statistic)
+    for k, v in mission_sequence.items()
 }
+
 # %%
-print(fuel_fraction)
+print("Fuel Fractions:")
+for k, v in fuel_fraction.items():
+    print(f"{k:25s}: {v:.4f}")
