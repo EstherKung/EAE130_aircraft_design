@@ -375,6 +375,7 @@ class Aircraft:
                 'lamb_w': wing.lam,
                 'c_r_w': wing.c_r,
                 'c_t_w': wing.c_t,
+                'c_bar': wing.c_bar,
                 'swp_w': wing.LE_swp,
                 'swp_mac25_w': wing.quart_mac_swp,
                 'b_fold': wing.fold_loc,
