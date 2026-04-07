@@ -1,5 +1,6 @@
 import openvsp as vsp
 import json
+import os
 import pandas as pd
 import numpy as np
 import pprint 
@@ -323,7 +324,8 @@ class VSP_Interface:
 
     def Run_MassProp(self, set: str = 'Set_19', n_slice: float = 100):
         # Runs MassProp (by default uses Set_19, can change if wish), returns CG location in self.cg
-        # By default, uses 100 slices. Can change for improved accuracy
+        # By default, uses 100 slices. Can change for improved accuracy. Suggest 200. 250 crashed my computer so maybe don't do that
+        # Returns xCG Location
         logging.info('Setting up a Mass Properties Analysis...')
 
         mass_set_idx = vsp.GetSetIndex(set)
@@ -346,6 +348,8 @@ class VSP_Interface:
         self.tot_mass = vsp.GetDoubleResults(mass_res_id, 'Total_Mass')
 
         logging.info(f'Calculated Mass Properties: Total Mass = {self.tot_mass} slugs;   XCG = {self.xCG}')
+
+        return self.xCG
 
     def Assign_Mass(self, densities: dict):
         # Use this method once you run Weigh_Plane.Mass(). Assigns calculated masses of wing, tails and wing tanks to existing vsp model. 
@@ -388,56 +392,96 @@ class VSP_Interface:
         vsp.WriteVSPFile(self.planefile)
 
 
-    def Run_VSPAERO_NP(self):
-        # Run a steady Neutral Point analysis, return NP
-        logging.info('Setting up a VSPAERO Steady Neutral Point Analysis...')
+    def Run_VSPAERO_NP(self, xcg: float, VSPAERO_dir: str = 'VSPAERO_Results'):
+        # Run a steady Neutral Point analysis, return NP & SM
+        # Creates a copy of the aircraft in VSPAERO_dir (by default VSPAERO_Results), stores results in that directory
 
         vsp.ClearVSPModel()
         vsp.ReadVSPFile(self.planefile)
 
-        self._initialize_NP_VSPAERO()
+        logging.info('Setting up a VSPAERO Steady Neutral Point Analysis...')
 
+        self._initialize_NP_VSPAERO(xcg=xcg)
+
+        vsp.Update()
+
+        # Set Up a Separate Directory to house VSPAERO Output files
+        os.makedirs(VSPAERO_dir, exist_ok=True)
+        vspaero_file = os.path.join(VSPAERO_dir, "F24HH_VSPAERO.vsp3")
+        vsp.WriteVSPFile(vspaero_file)
+
+        # Compute VSPAERO Mesh 
+        logging.info('Computing VSPAERO Mesh')
+
+        vsp.SetAnalysisInputDefaults('VSPAEROComputeGeometry')
+        vsp.ExecAnalysis('VSPAEROComputeGeometry')
+
+        # Run VSPAERO Steady Case
+        logging.info('Running VSPAERO Steady Case...')
+
+        vsp.SetAnalysisInputDefaults("VSPAEROSweep")
+        vsp.ExecAnalysis('VSPAEROSweep')
+
+        # Access Stability Results
+        aero_res_id = vsp.FindLatestResultsID("VSPAERO_Stab")
+
+        self.static_margin = vsp.GetDoubleResults(aero_res_id, "SM")[0]
+        self.neutral_point = vsp.GetDoubleResults(aero_res_id, "X_np")[0]
+            
+        logging.info(f"X Neutral Point: {self.neutral_point:.3f}")
+        logging.info(f"Static Margin: {self.static_margin:.4f}")
 
         vsp.Update()
         vsp.WriteVSPFile(self.planefile)
 
+        return self.static_margin, self.neutral_point
 
-    def _initialize_NP_VSPAERO(self):
+
+    def _initialize_NP_VSPAERO(self, xcg: float):
         # Set up VSPAERO settings for steady NP analysis case
-        # Should run CalcCG, and input it into initialization
+        # By Default, runs on Set_3; which houses only wing and tail surfaces (no fuselage)
+
+        # Grab wing dimensions
+        wing = self.geom['wing']
+
         '''vsp.ClearVSPModel()
         vsp.ReadVSPFile(self.planefile)''' # Turn on for testing
 
         aero_id = vsp.FindContainer("VSPAEROSettings", 0)
         
-        #Toggle Steady Analysis
+        # Toggle Steady Analysis
         vsp.SetParmVal(aero_id, "UnsteadyType", "VSPAERO", 1.0)
         
-        #Take Ref Area from Geom, MAC
-        vsp.SetParmVal(aero_id, "RefFlag", "VSPAERO", 1.0)
-        vsp.SetParmVal(aero_id, 'MACFlag', 'VSPAERO', 1.0)
+        # Manually enter Ref. Wing parameters
+        vsp.SetParmVal(aero_id, "RefFlag", "VSPAERO", 0.0)
+        #vsp.SetParmVal(aero_id, 'MACFlag', 'VSPAERO', 1.0)
+        vsp.SetParmVal(aero_id, 'Sref', 'VSPAERO', wing['S_w'])
+        vsp.SetParmVal(aero_id, 'bref', 'VSPAERO', wing['b_w'])
+        vsp.SetParmVal(aero_id, 'cref', 'VSPAERO', wing['c_bar'])
         
-        #Use 16 CPUs
+        # Use 16 CPUs
         vsp.SetParmVal(aero_id, "NCPU", "VSPAERO", 16.0)
         
-        #Init. CG Calc
+        # Init. CG Calc
         vsp.SetParmVal(aero_id, "NumMassSlice", "VSPAERO", 100.0)
         
-        #Present Analysis to Set_3
+        # Present Analysis to Set_3
         #set_index = vsp.GetSetIndex("Set_3")
         vsp.SetParmVal(aero_id, "ThinGeomSet", "VSPAERO", float(self.set_3_idx))
         
-        #No VLM 
+        # No VLM 
         vsp.SetParmVal(aero_id, "GeomSet", "VSPAERO", float(vsp.SET_NONE))
 
+        # Set CG Ref Point
+        vsp.SetParmVal(aero_id, 'Xcg', 'VSPAERO', xcg)
+
         logging.info('Initialized Steady NP Case...')
+
 
         # turn on for testing
         '''vsp.Update()
         vsp.WriteVSPFile(self.planefile)'''
 
-
-        
 
     def Tester(self):
         # A method to test other methods that interface with vsp. (so no need to have all methods import and save files)
@@ -594,8 +638,8 @@ if __name__ == "__main__":
                     tail_foils=[r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A004.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A005.dat"])
     
     # Initialize and Model the Aircraft in OpenVSP, run CompGeom to get surfaces areas and volumes
-    vspfile = VSP_Interface(config=config)
-    vspfile.BuildPlane(include_fuse=False)
+    vspfile = VSP_Interface(config=config, global_x_transl=16)
+    vspfile.BuildPlane(include_fuse=True)
     vspfile.Run_CompGeom()
 
     # Calculate Masses of surfaces based on CompGeom results and 
@@ -606,5 +650,7 @@ if __name__ == "__main__":
     vspfile.Assign_Mass(densities=desnities)
 
     # Perform VSP analyses; MassProps, VSPAERO, etc. 
-    vspfile.Run_MassProp()
-    vspfile._initialize_NP_VSPAERO()
+    xcg = vspfile.Run_MassProp(n_slice=250)
+    #vspfile._initialize_NP_VSPAERO(xcg=xcg)
+    
+    SM, xNP = vspfile.Run_VSPAERO_NP(xcg=xcg)
