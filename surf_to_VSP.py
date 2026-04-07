@@ -345,7 +345,47 @@ class VSP_Interface:
 
         self.tot_mass = vsp.GetDoubleResults(mass_res_id, 'Total_Mass')
 
-        logging.info(f'Calculated Mass Properties: Total Mass = {self.tot_mass} slugs /// XCG = {self.xCG}')
+        logging.info(f'Calculated Mass Properties: Total Mass = {self.tot_mass} slugs;   XCG = {self.xCG}')
+
+    def Assign_Mass(self, densities: dict):
+        # Use this method once you run Weigh_Plane.Mass(). Assigns calculated masses of wing, tails and wing tanks to existing vsp model. 
+        logging.info(f'Assigning densities to {self.planefile}...')
+
+        vsp.ClearVSPModel()
+        vsp.ReadVSPFile(self.planefile)
+
+        # Find Component IDs 
+        wing_id = vsp.FindGeomsWithName("Main_Wing")[0]
+        hstab_id = vsp.FindGeomsWithName("HStab")[0]
+        vstab_id = vsp.FindGeomsWithName("VStab")[0]
+        ftank_id = vsp.FindGeomsWithName("Wing Fuel Tank")[0]
+
+        # Assign Density of Main Wing
+        logging.info('Setting the density of the Wing...')
+        vsp.SetParmVal(wing_id, "Density", "Mass_Props", 0)
+        vsp.SetParmVal(wing_id, "Shell_Flag", "Mass_Props", 1)
+        vsp.SetParmVal(wing_id, 'Mass_Area', 'Mass_Props', densities['Wing_Density'])
+
+        # Assign Density of Hstab
+        logging.info('Setting the density of the HStab...')
+        vsp.SetParmVal(hstab_id, "Density", "Mass_Props", densities['HStab_Density'])
+        vsp.SetParmVal(hstab_id, "Shell_Flag", "Mass_Props", 0.0)
+
+        # Assign Density of Vstab
+        logging.info('Setting the density of the VStab...')
+        vsp.SetParmVal(vstab_id, "Density", "Mass_Props", densities['VStab_Density'])
+        vsp.SetParmVal(vstab_id, "Shell_Flag", "Mass_Props", 0.0)
+
+        #Assign Density of Fuel Tanks
+        logging.info('Setting the density of the Fuel Tanks...')
+        vsp.SetParmVal(ftank_id, "Density", "Mass_Props", densities['Wing_Tank_Density'])
+        vsp.SetParmVal(ftank_id, "Shell_Flag", "Mass_Props", 0.0)
+        vsp.SetParmVal(ftank_id, "Mass_Prior", "Mass_Props", 1.0)
+
+        logging.info(f'Succesfully Assigned Masses to {self.planefile}')
+    
+        vsp.Update()
+        vsp.WriteVSPFile(self.planefile)
 
 
     def Run_VSPAERO_NP(self):
@@ -411,7 +451,6 @@ class VSP_Interface:
         vsp.WriteVSPFile(self.planefile)
 
 
-
     def ID_Helper(self, geom_id):
         """
         helper function to print every parameter, its group, and its API name 
@@ -440,8 +479,14 @@ class VSP_Interface:
         print("-" * 65 + "\n")
 
 
+
+########################
+# WEIGHTS CALCULATOR
+########################
+
 class Weigh_Plane:
     # Class to calculate wing, hstab, vstab, and fuel tank weights/masses per Raymer's Eqns. 
+    # Must be run after you initialize VSP Model using VSP_Interface, VSP_Interface.BuildPlane(), VSP_Interface.RunCompGeom()
     def __init__(self, manager: VSP_Interface):
         self.manager = manager
         self.config = manager.config
@@ -450,7 +495,43 @@ class Weigh_Plane:
 
     def Mass(self):
         # Calculate mass of Wing, Wing Tank, Tails.  
-        pass
+        # Returns dictionary with densities [slug/ft^3], [slug/ft^2] for each component
+        self._WingMass()
+        self._HStabMass()
+        self._VStabMass()
+        self._WTankMass()
+
+        # Weights of JUST Wing, HStab, VStab
+        self.tot_surf_mass = self.M_w_slug + self.M_HT_slug + self.M_VT_slug
+        self.tot_surf_weight = self.W_w_lbf + self.W_HT_lbf + self.W_VT_lbf
+
+        # Tabulation of Total Weights
+        self.Weights = [self.W_w_lbf, self.W_HT_lbf, self.W_VT_lbf, self.W_WTank_Fuel_lbf, self.tot_surf_weight + self.W_WTank_Fuel_lbf]
+        self.Masses = [self.M_w_slug, self.M_HT_slug, self.M_VT_slug, self.M_WTank_Fuel_slug, self.tot_surf_mass + self.M_WTank_Fuel_slug]
+        self.mlabels = ['Wing', 'HStab', 'VStab', 'Wing Fuel Tanks', 'Total']
+
+        self.mass_df = pd.DataFrame({
+            'Weight [lbf]': self.Weights,
+            'Mass [slugs]': self.Masses
+        }, index=self.mlabels)
+
+        print(self.mass_df.round(3))
+
+        logging.info(f'Total Weight of Flying Surfaces = {self.tot_surf_weight:.2f} lbf;   Total Mass of Flying Surfaces = {self.tot_surf_mass:.2f} slugs')
+
+        # Store masses in a dictionary to use later
+        self.mass_dict = dict(zip(self.mlabels, self.Masses))
+
+        # Calculate required density ([slug/ft^3] for Wing Tank, Tails) ([slug/ft^2] for Wing) for each component
+        self.comp_dens = {
+            'Wing_Density': self.M_w_slug / self.manager.comp_wet_areas['Main_Wing'],
+            'Wing_Tank_Density': self.M_WTank_Fuel_slug / self.manager.comp_vols['Wing Fuel Tank'],
+            'HStab_Density': self.M_HT_slug / self.manager.comp_vols['HStab'],
+            'VStab_Density': self.M_VT_slug / self.manager.comp_vols['VStab']
+        }
+
+        return self.comp_dens
+
 
     def _WingMass(self):
         # Estimate wing weight per Raymer's Eqns. (Internal method)
@@ -462,16 +543,43 @@ class Weigh_Plane:
         self.W_w_lbf = 0.0103 * (self.config.W_dg * self.config.N_z)**0.5 * wing['S_w']**0.622 * wing['ar_w']**0.785 * self.config.tc_rt**(-0.4) * (1 + wing['lamb_w'])**0.05 * (np.cos(np.deg2rad(wing['swp_mac25_w'])))**(-1.0) * self.S_csw**0.04
         self.M_w_slug = self.W_w_lbf / 32.174
         
-        logging.info(f'Wing Weight = {self.W_w_lbf:.2f} lbf; Wing Mass = {self.M_w_slug:.2f}slugs')
+        logging.info(f'Wing Weight = {self.W_w_lbf:.2f} lbf;   Wing Mass = {self.M_w_slug:.2f}slugs')
 
     def _HStabMass(self):
         # Estimate hstab mass per Raymer's Eqns. (Internal method)
         logging.info('Calculating HStab Weight')
         hstab = self.manager.geom['hstab']
 
-        
+        self.W_HT_lbf = 3.316 * (1 + self.config.F_w / hstab['b_HT'])**(-2.0) * ((self.config.W_dg * self.config.N_z) / 1000)**0.260 * hstab['S_HT']**0.806
+        self.M_HT_slug = self.W_HT_lbf / 32.174
+
+        logging.info(f'HStab Weight = {self.W_HT_lbf:.2f} lbf;   HStab Mass = {self.M_HT_slug:.2f} slugs')
+
+    def _VStabMass(self):
+        # Estimate vstab mass per Raymer's Eqns. (Internal Method)
+        logging.info('Calculating VStab Weight')
+        vstab = self.manager.geom['vstab']
+
+        self.S_r = self.manager.ss_areas['VStab,Rudder']
+
+        self.W_VT_lbf = 0.452 * (1)**0.5 * (self.config.W_dg * self.config.N_z)**0.488 * vstab['S_VT']**0.718 * self.config.M**0.341 * vstab['L_VT']**(-1.0) * (1 + self.S_r / vstab['S_VT'])**0.348 * vstab['AR_VT']**0.233 * (1 + vstab['lam_VT'])**0.25 * np.cos(np.deg2rad(vstab['swp_25mac_VT']))**(-0.323)
+        self.M_VT_slug = self.W_VT_lbf / 32.174
+
+        logging.info(f'VStab Weight = {self.W_VT_lbf:.2f} lbf;   VStab Mass = {self.M_VT_slug:.2f} slugs')
+
+    def _WTankMass(self):
+        # Calculate Mass of fuel in wing tanks 
+        logging.info('Calculating Mass of Fuel in Wing Tanks...')
+
+        self.wtank_vol_gal = self.manager.comp_vols['Wing Fuel Tank'] / 0.1336805556
+        self.W_WTank_Fuel_lbf = self.wtank_vol_gal * self.config.rho_fuel
+        self.M_WTank_Fuel_slug = self.W_WTank_Fuel_lbf / 32.174
+
+        logging.info(f'Volume of Integral Wing Tanks: {self.wtank_vol_gal:.2f} gal;   Weight of Fuel in Wing Tanks: {self.W_WTank_Fuel_lbf:.2f} lbf;   Mass of Fuel in Wing Tanks: {self.M_WTank_Fuel_slug:.2f} slugs')
 
         
+
+
 
 
 ########################
@@ -485,10 +593,18 @@ if __name__ == "__main__":
                     wing_foils=[r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A006_TEST.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A005.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A004_TEST.dat"],
                     tail_foils=[r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A004.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A005.dat"])
     
+    # Initialize and Model the Aircraft in OpenVSP, run CompGeom to get surfaces areas and volumes
     vspfile = VSP_Interface(config=config)
     vspfile.BuildPlane(include_fuse=False)
-    #vspfile.Tester()
     vspfile.Run_CompGeom()
-    #vspfile.Run_VSPAERO_NP()
+
+    # Calculate Masses of surfaces based on CompGeom results and 
     mass = Weigh_Plane(manager=vspfile)
-    mass._WingMass()
+    desnities = mass.Mass()
+
+    # Assigns densities to previously created VSP file
+    vspfile.Assign_Mass(densities=desnities)
+
+    # Perform VSP analyses; MassProps, VSPAERO, etc. 
+    vspfile.Run_MassProp()
+    vspfile._initialize_NP_VSPAERO()
