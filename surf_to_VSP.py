@@ -325,7 +325,7 @@ class VSP_Interface:
     def Run_MassProp(self, set: str = 'Set_19', n_slice: float = 100):
         # Runs MassProp (by default uses Set_19, can change if wish), returns CG location in self.cg
         # By default, uses 100 slices. Can change for improved accuracy. Suggest 200. 250 crashed my computer so maybe don't do that
-        # Returns xCG Location
+        # Returns xCG Location (maybe return also total mass?)
         logging.info('Setting up a Mass Properties Analysis...')
 
         mass_set_idx = vsp.GetSetIndex(set)
@@ -349,7 +349,7 @@ class VSP_Interface:
 
         logging.info(f'Calculated Mass Properties: Total Mass = {self.tot_mass} slugs;   XCG = {self.xCG}')
 
-        return self.xCG
+        return self.xCG, self.tot_mass
 
     def Assign_Mass(self, densities: dict):
         # Use this method once you run Weigh_Plane.Mass(). Assigns calculated masses of wing, tails and wing tanks to existing vsp model. 
@@ -466,8 +466,8 @@ class VSP_Interface:
         vsp.SetParmVal(aero_id, "NumMassSlice", "VSPAERO", 100.0)
         
         # Present Analysis to Set_3
-        #set_index = vsp.GetSetIndex("Set_3")
-        vsp.SetParmVal(aero_id, "ThinGeomSet", "VSPAERO", float(self.set_3_idx))
+        current_set3_index = vsp.GetSetIndex("Set_3")
+        vsp.SetParmVal(aero_id, "ThinGeomSet", "VSPAERO", float(current_set3_index))
         
         # No VLM 
         vsp.SetParmVal(aero_id, "GeomSet", "VSPAERO", float(vsp.SET_NONE))
@@ -589,6 +589,21 @@ class Weigh_Plane:
         
         logging.info(f'Wing Weight = {self.W_w_lbf:.2f} lbf;   Wing Mass = {self.M_w_slug:.2f}slugs')
 
+        # Log weights variables in dictionary
+        self.wing_weight_parms = {
+            'W_dg': self.config.W_dg,
+            'N_z': self.config.N_z,
+            'S_w': wing['S_w'],
+            'A': wing['ar_w'],
+            'tc_rt': self.config.tc_rt,
+            'lambda_w': wing['lamb_w'],
+            '25MAC_Swp': wing['swp_mac25_w'],
+            'S_csw': self.S_csw
+        }
+
+        logging.info('Wing Weight Parameters:')
+        pprint.pprint(self.wing_weight_parms)
+
     def _HStabMass(self):
         # Estimate hstab mass per Raymer's Eqns. (Internal method)
         logging.info('Calculating HStab Weight')
@@ -598,6 +613,18 @@ class Weigh_Plane:
         self.M_HT_slug = self.W_HT_lbf / 32.174
 
         logging.info(f'HStab Weight = {self.W_HT_lbf:.2f} lbf;   HStab Mass = {self.M_HT_slug:.2f} slugs')
+
+        # Log weights variables
+        self.hstab_weight_parms = {
+            'F_w': self.config.F_w,
+            'B_h': hstab['b_HT'],
+            'W_dg': self.config.W_dg,
+            'N_z': self.config.N_z,
+            'S_ht': hstab['S_HT']
+        }
+
+        logging.info('HStab Weight Parameters:')
+        pprint.pprint(self.hstab_weight_parms)
 
     def _VStabMass(self):
         # Estimate vstab mass per Raymer's Eqns. (Internal Method)
@@ -610,6 +637,22 @@ class Weigh_Plane:
         self.M_VT_slug = self.W_VT_lbf / 32.174
 
         logging.info(f'VStab Weight = {self.W_VT_lbf:.2f} lbf;   VStab Mass = {self.M_VT_slug:.2f} slugs')
+
+        # Log weights variables
+        self.vstab_weight_parms = {
+            'W_dg': self.config.W_dg,
+            'N_z': self.config.N_z,
+            'S_VT': vstab['S_VT'],
+            'M': self.config.M,
+            'L_t': vstab['L_VT'],
+            'S_r': self.S_r,
+            'A_VT': vstab['AR_VT'],
+            'lambda': vstab['lam_VT'],
+            '25MAC_swp': vstab['swp_25mac_VT']
+        }
+
+        logging.info('VStab Weights Parameters:')
+        pprint.pprint(self.vstab_weight_parms)
 
     def _WTankMass(self):
         # Calculate Mass of fuel in wing tanks 
@@ -646,11 +689,12 @@ if __name__ == "__main__":
     mass = Weigh_Plane(manager=vspfile)
     desnities = mass.Mass()
 
-    # Assigns densities to previously created VSP file
+    '''# Assigns densities to previously created VSP file
     vspfile.Assign_Mass(densities=desnities)
 
     # Perform VSP analyses; MassProps, VSPAERO, etc. 
-    xcg = vspfile.Run_MassProp(n_slice=250)
+    xcg, AC_mass_slug = vspfile.Run_MassProp(n_slice=200)
     #vspfile._initialize_NP_VSPAERO(xcg=xcg)
     
     SM, xNP = vspfile.Run_VSPAERO_NP(xcg=xcg)
+    # instead of running vspaero here, we can call AVL to calculate the NP instead for speed'''
