@@ -9,7 +9,12 @@ from dataclasses import dataclass
 import logging
 
 # Initialize logging
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(handlers=[
+                        logging.FileHandler("surf_to_VSP.log", mode='w'),
+                        logging.StreamHandler()
+                    ],
+                    level=logging.INFO, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Initialize config file, contains files and constants
 @dataclass
@@ -61,7 +66,7 @@ class VSP_Interface:
         # Fuselage File
         if include_fuse == True:
             vsp.InsertVSPFile(self.config.fuse_file_path, "")
-            logging.info('Imported Fuselage File...')
+            logging.info('Importing Fuselage File...')
         elif include_fuse == False:
             logging.info('Fuselage Excluded...')
         
@@ -325,7 +330,7 @@ class VSP_Interface:
     def Run_MassProp(self, set: str = 'Set_19', n_slice: float = 100):
         # Runs MassProp (by default uses Set_19, can change if wish), returns CG location in self.cg
         # By default, uses 100 slices. Can change for improved accuracy. Suggest 200. 250 crashed my computer so maybe don't do that
-        # Returns xCG Location (maybe return also total mass?)
+        # Returns xCG Location and total Mass
         logging.info('Setting up a Mass Properties Analysis...')
 
         mass_set_idx = vsp.GetSetIndex(set)
@@ -689,7 +694,7 @@ if __name__ == "__main__":
     mass = Weigh_Plane(manager=vspfile)
     desnities = mass.Mass()
 
-    '''# Assigns densities to previously created VSP file
+    # Assigns densities to previously created VSP file
     vspfile.Assign_Mass(densities=desnities)
 
     # Perform VSP analyses; MassProps, VSPAERO, etc. 
@@ -697,4 +702,4 @@ if __name__ == "__main__":
     #vspfile._initialize_NP_VSPAERO(xcg=xcg)
     
     SM, xNP = vspfile.Run_VSPAERO_NP(xcg=xcg)
-    # instead of running vspaero here, we can call AVL to calculate the NP instead for speed'''
+    # instead of running vspaero here, we can call AVL to calculate the NP instead for speed
