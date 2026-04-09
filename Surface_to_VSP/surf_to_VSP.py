@@ -1,6 +1,7 @@
 import openvsp as vsp
 import json
 import os
+from pathlib import Path
 import pandas as pd
 import numpy as np
 import pprint 
@@ -10,7 +11,7 @@ import logging
 
 # Initialize logging
 logging.basicConfig(handlers=[
-                        logging.FileHandler("surf_to_VSP.log", mode='w'),
+                        logging.FileHandler(os.path.join(Path(__file__).parent, "surf_to_VSP.log"), mode='w'),
                         logging.StreamHandler()
                     ],
                     level=logging.INFO, 
@@ -45,7 +46,11 @@ class VSP_Interface:
         self.config = config
         self.global_x_transl = global_x_transl
 
-        self.planefile = f'{self.config.vsp_filename}.vsp3'
+        # Create path file to local directory (so that results are returned in EAE130_AIRCRAFT_DESIGN\Surface_to_VSP)
+        self.local_dir = Path(__file__).parent
+        vsp_file_name = f'{self.config.vsp_filename}.vsp3'
+
+        self.planefile = os.path.join(self.local_dir, vsp_file_name)
 
         # Load json file
         with open(f"{self.config.geom_def_path}", 'r') as file:
@@ -411,8 +416,9 @@ class VSP_Interface:
         vsp.Update()
 
         # Set Up a Separate Directory to house VSPAERO Output files
-        os.makedirs(VSPAERO_dir, exist_ok=True)
-        vspaero_file = os.path.join(VSPAERO_dir, "F24HH_VSPAERO.vsp3")
+        results_dir_path = os.path.join(self.local_dir, VSPAERO_dir)
+        os.makedirs(results_dir_path, exist_ok=True)
+        vspaero_file = os.path.join(results_dir_path, "F24HH_VSPAERO.vsp3")
         vsp.WriteVSPFile(vspaero_file)
 
         # Compute VSPAERO Mesh 
@@ -680,7 +686,7 @@ class Weigh_Plane:
 
 if __name__ == "__main__":
     config = Config(vsp_filename='F24HH_2',
-                    geom_def_path='airplane_geom2.json',
+                    geom_def_path=r'C:\Users\14153\Desktop\Skewl\EAE 130\Python\EAE130_aircraft_design\Flying_Surfaces\airplane_geom2.json',
                     fuse_file_path=r"C:\Users\14153\Desktop\OpenVSP-3.48.2-win64\VSPFiles\2_SIMPLE_F24HH_FUSE.vsp3",
                     wing_foils=[r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A006_TEST.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A005.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A004_TEST.dat"],
                     tail_foils=[r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A004.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A005.dat"])

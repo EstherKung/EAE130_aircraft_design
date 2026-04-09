@@ -1,0 +1,21 @@
+# VSPGEOM v3 Tag Key File
+c:\Users\14153\Desktop\Skewl\EAE 130\Python\EAE130_aircraft_design\Surface_to_VSP\VSPAERO_Results\F24HH_VSPAERO.vspgeom
+6
+
+# part#,geom#,surf#,gname,gid,thick,plate,copy#,geomcopy#
+1,1,0,Main_Wing_C,SVWJDTMJMN,0,3,1,2
+2,1,1,Main_Wing_C,SVWJDTMJMN,0,3,2,2
+3,2,0,HStab_C,AZJRCHHZAG,0,3,1,3
+4,2,1,HStab_C,AZJRCHHZAG,0,3,2,3
+5,0,0,VStab_C,YCQDADSUQR,0,3,1,1
+6,0,1,VStab_C,YCQDADSUQR,0,3,2,1
+
+6
+
+# tag#,part#,ssname1,ssname2,...,ssid1,ssid2,...
+1,1
+2,2
+3,3
+4,4
+5,5
+6,6

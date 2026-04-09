@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import json
 import os
+from pathlib import Path
 import pprint
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -362,7 +363,7 @@ class Aircraft:
     #def plot_3D(self, a):
         # implement in future if time, use plotly to make a 3D visualization of the planform
 
-    def json_export(self, fname, dir):
+    def json_export(self, fname):
         wing = self.surfaces['Wing']
         hstab = self.surfaces['HStab']
         vstab = self.surfaces['VStab']
@@ -426,6 +427,8 @@ class Aircraft:
             }
         }
 
+        # Get local directory, save json there
+        dir = Path(__file__).parent
         json_path = os.path.join(dir, fname)
         with open(json_path, 'w') as json_file:
             json.dump(geom_def, json_file, indent=4)
@@ -460,6 +463,6 @@ plt.title('F24HH Planform')
 plt.show()
 
 # Export as json
-F24HH.json_export(fname='airplane_geom2.json', dir=r"C:\Users\14153\Desktop\Skewl\EAE 130\Python\EAE130_aircraft_design")
+F24HH.json_export(fname='airplane_geom2.json')
 
 pprint.pprint(vars(F24HH.surfaces['HStab']))
