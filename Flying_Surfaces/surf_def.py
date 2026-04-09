@@ -1,3 +1,7 @@
+"""
+Calculate and export the wing and tail dimensions of a simple aircraft defined by parameters. 
+"""
+
 import numpy as np
 import pandas as pd
 import json
@@ -6,6 +10,7 @@ from pathlib import Path
 import pprint
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from matplotlib.axes import Axes
 import matplotlib as mpl
 
 mpl.rcParams.update({
@@ -99,9 +104,23 @@ Vstab_rud = {
 #####################
 # PLANFORM
 #####################
-# generic class for calculating dimensions of an arbitrary surface, plotting it
 class planform:
-    def __init__(self, name, S, AR, lam, LE_swp, L_offset=0): # L_offset offsets the entire surface along the x-axis
+    '''
+    Calculates dimension of a typical single-taper planform. Plots for visualization 
+    '''
+    def __init__(self, name: str, S:float, AR:float, lam:float, LE_swp:float, L_offset:float = 0): # L_offset offsets the entire surface along the x-axis
+        '''
+        Initializes parameters
+
+        Args:
+            name (str): Name of the planform 
+            S (float): Planform area [ft^2]
+            AR (float): Aspect ratio of planform
+            lam (float): Taper ratio of planform
+            LE_swp (float): Leading Edge Sweep 
+            L_offset (float) (optional): Distance to offset surface along x-axis, measured from origin to root chord LE point
+        '''
+
         self.name = name
         self.S = S
         self.AR = AR
@@ -114,6 +133,10 @@ class planform:
         self.calc_plan()
 
     def calc_plan(self):
+        '''
+        Calculates wingspan, root and tip chord, and MAC chord. Calculates quarter MAC point with reference to origin (wing LE point OR wing LE point plus L_offset), calculates sweep at quarter MAC.
+        '''
+
         # Define core planform
         self.b = np.sqrt(self.S * self.AR)
         self.c_r = (2 * self.S) / (self.b * (1 + self.lam))
@@ -133,14 +156,27 @@ class planform:
         self.quart_c_r = self.c_r / 4 + self.L_offset
         self.quart_mac_swp = np.rad2deg(np.arctan((abs(self.quart_mac_y) - self.quart_c_r) / self.y_bar))
 
-    def set_global_loc(self, new_L_offset):
-        # Method to modify the planform LE location (use to move tail surfaces to correct location)
+    def set_global_loc(self, new_L_offset:float):
+        '''
+        Modifies the planform LE location (use to move tail surfaces to correct location). Re-calculates planform parameters with reference to offset distance.
+        
+        Args:
+            new_L_offset (float): The new offset distance [ft] to offset the surface.
+        '''
+
         self.L_offset = new_L_offset
         
         # Re-calculate planform based on new offset
         self.calc_plan()
 
-    def plan_plot(self, ax):
+    def plan_plot(self, ax: Axes):
+        '''
+        Plots the planform to visualize the geometry
+
+        Args:
+            ax (Axes): The axes object to plot upon.    
+        '''
+
         # Plot planform
         self.LE_point = (0, 0 -self.L_offset)
         self.Tip_f_point = (self.b/2, -self.b/2 * self.LE_s_bar - self.L_offset)

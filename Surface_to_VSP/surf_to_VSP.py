@@ -1,3 +1,7 @@
+"""
+Automatically model a simple aircraft in OpenVSP. Calculate and assign wing, wing fuel tank, tail masses. Run CompGeom, MassProp, VSPAERO.
+"""
+
 import openvsp as vsp
 import json
 import os
@@ -40,9 +44,19 @@ class Config:
 ########################
 
 class VSP_Interface:
-    # Interface to OpenVSP
+    '''
+    Class to interface with OpenVSP. Script in wing and tail geometry, input mass parameters, run analyses (VSPAERO, CompGeom, MassProp).
+    '''
 
     def __init__(self, config: Config, global_x_transl: float = 16.0):
+        '''
+        Initializes inputs, file paths and containers. 
+
+        Args: 
+            config (Config): Contains file paths and constants. 
+            global_x_transl (float): The X offset distance applied to all modeled objects relative to the origin
+        '''
+
         self.config = config
         self.global_x_transl = global_x_transl
 
