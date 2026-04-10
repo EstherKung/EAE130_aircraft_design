@@ -1,14 +1,14 @@
 Weights Parameter,Value,Unit,Description,
-W_dg,42449,lbs,Flight Design Gross Weight (typ. 50-60% internal fuel for mil. aircraft),x
+W_dg,56725,lbs,Flight Design Gross Weight (typ. 50-60% internal fuel for mil. aircraft),x
 N_z,10.50,-,Ultimate Design Load Factor (7g * 1.5 = 10.5g),
 L,40.00,ft,"Fuselage Length (exclude radome cowling, tail cap)",
 D,6.00,ft,Fuselage Structural Depth (height),
 W,7.00,ft,Fuselage Structural Width,
-W_l,49191,lbs,Landing Design Gross Weight,x
-N_l,6.00,-,Ultimate Landing Load Factor,
-L_n,48.00,in,"Extended Nose Gear Length, in",y
+W_l,38966.24,lbs,Landing Design Gross Weight,x
+N_l,8.50,-,Ultimate Landing Load Factor,
+L_n,48.00,in,"Extended Nose Gear Length, in",
 N_nw,2.00,-,Number Nose Wheels,
-L_m,54.00,in,"Extended Length of MLG, in",y
+L_m,54.00,in,"Extended Length of MLG, in",
 N_en,1.00,-,Number Engines,
 T,"29,160.00",lbs,Total engine thrust,
 W_en,"3,826.00",lbs,Engine Weight,
