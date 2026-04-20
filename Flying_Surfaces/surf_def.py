@@ -37,7 +37,7 @@ wing_parm = {
 }
 
 wing_geom = {
-    "Z_loc": 0.2,       # Vertical Offset, ft
+    "Z_loc": -0.1,       # Vertical Offset, ft
     "Y_rot": 1.5,       # Angle of Incidence, degrees
     "X_Rot": 0,         # Dihedral, degrees
     "Fold_Loc": 14.0,   # Location of wing fold, ft 
@@ -64,6 +64,13 @@ wing_slat = {
     "cs_c2": .2
 }
 
+# AVL parsing; 0 = regular chord element, no control surfaces. 
+#              1 = TE control surface
+#              2 = LE control surface
+#              4 = regular chord tip, LE & TE terminating
+#              5 = regular chord, TE sfs terminating
+wing_control = [0, 2, 1, 5, 1.5, 4]
+
 # HStab Definition
 Hstab_parm = {
     "c_HT": 0.30,       # HStab Tail Volume Coefficient
@@ -75,8 +82,11 @@ Hstab_parm = {
 
 Hstab_geom = {
     "YLoc_HT": 2.3,     # Horizontal Offset, ft
-    "ZLoc_HT": -0.4527  # Vertical Offset, ft
+    "ZLoc_HT": -0.1  # Vertical Offset, ft
 }
+
+Hstab_control = [-1, 0, 0] # for AVL parsing; if 0, regular chord element (Root Chord, Tip Chord)
+# -1 = root bridging
 
 # Vstab Definition
 VStab_parm = {
@@ -99,6 +109,8 @@ Vstab_rud = {
     "b1_rud": 0.1,      # Start Span Fraction
     "b2_rud": 1.0       # End Span Fraction
 }
+
+Vstab_control = [0, 1, 3] # For AVL parsing; if 0, regular chord element; if 1, TE CNTL sfs, 3 if tip chord & TE surface termination
 
 
 #####################
@@ -156,6 +168,16 @@ class planform:
         self.quart_c_r = self.c_r / 4 + self.L_offset
         self.quart_mac_swp = np.rad2deg(np.arctan((abs(self.quart_mac_y) - self.quart_c_r) / self.y_bar))
 
+        # Planform vertices w.r.t. global origin (y, x), aircraft coords
+        self.LE_point = (0, 0 -self.L_offset)
+        self.Tip_f_point = (self.b/2, -self.b/2 * self.LE_s_bar - self.L_offset)
+        self.Tip_b_point = (self.b/2, -self.b/2 * self.LE_s_bar - self.c_t - self.L_offset)
+        self.TE_point = (0, -self.c_r - self.L_offset)
+
+        # Store x & y points for future use (LE root, LE tip, TE tip, TE root)
+        self.xpoints = [self.LE_point[1], self.Tip_f_point[1], self.Tip_b_point[1], self.TE_point[1]]
+        self.ypoints = [self.LE_point[0], self.Tip_f_point[0], self.Tip_b_point[0], self.TE_point[0]]
+
     def set_global_loc(self, new_L_offset:float):
         '''
         Modifies the planform LE location (use to move tail surfaces to correct location). Re-calculates planform parameters with reference to offset distance.
@@ -178,11 +200,6 @@ class planform:
         '''
 
         # Plot planform
-        self.LE_point = (0, 0 -self.L_offset)
-        self.Tip_f_point = (self.b/2, -self.b/2 * self.LE_s_bar - self.L_offset)
-        self.Tip_b_point = (self.b/2, -self.b/2 * self.LE_s_bar - self.c_t - self.L_offset)
-        self.TE_point = (0, -self.c_r - self.L_offset)
-
         self.points = [self.LE_point, self.Tip_f_point, self.Tip_b_point, self.TE_point]
 
         self.mac_line_x = (self.y_bar, self.y_bar)
@@ -198,9 +215,6 @@ class planform:
         ax.set_ylabel("Body X")
         ax.set_title(f"{self.name} Planform")
 
-        # Store x & y points for future use
-        self.xpoints = [self.LE_point[1], self.Tip_f_point[1], self.Tip_b_point[1], self.TE_point[1]]
-        self.ypoints = [self.LE_point[0], self.Tip_f_point[0], self.Tip_b_point[0], self.TE_point[0]]
 
 
 #####################
@@ -242,6 +256,32 @@ class Wing(planform):
             'c2_slat': cs_c2
         }
 
+    def calc_coords(self):
+        # Calculate LE coordinates for AVL
+        span_fracs = np.unique([
+            0.0,
+            self.ss['slat']['b1_slat'],
+            self.ss['flap']['b1_flap'],
+            self.ss['flap']['b2_flap'],
+            self.fold_loc / (self.b / 2),
+            self.ss['aileron']['b1_ail'],
+            self.ss['aileron']['b2_ail'],
+            self.ss['slat']['b2_slat'],
+            1.0
+        ])
+
+        yLE = (self.b / 2) * span_fracs
+        xLE = yLE * np.tan(self.LE_swp_rad) + self.L_offset
+        chords = self.c_r - ((self.c_r - self.c_t) * span_fracs)
+
+        self.xLE = xLE.tolist()
+        self.yLE = yLE.tolist()
+        self.zLE = self.Z_loc
+        self.chords = chords.tolist()
+        
+
+        pprint.pprint(yLE)
+
 # Testing, enable if testing wing
 '''# Call the Wing class to define the main wing
 wing = Wing('Wing', S=S_w, AR=wing_parm["AR"], lam=wing_parm["lambda_w"], LE_swp=wing_parm["LE_swp"], L_offset=0,
@@ -267,6 +307,16 @@ class HStab(planform):
 
         self.Y_Loc = YLoc_HT
         self.Z_Loc = ZLoc_HT 
+
+    def calc_coords(self):
+        # tabulate coordinates for AVL export
+        # Store LE points for AVL usage
+        self.xLE_pts = [-self.xpoints[0], -self.xpoints[1]]
+        self.yLE_pts = [self.ypoints[0] + self.Y_Loc, self.ypoints[1]+ self.Y_Loc]
+        self.zLE_pts = [self.Z_Loc, self.Z_Loc]
+
+        # Store chord length for AVL usage
+        self.chords = [self.c_r, self.c_t]
 
 # Testing, enable if plotting hstab on own
 '''
@@ -312,6 +362,35 @@ class VStab(planform):
             'c1_rud': cr_c1,
             'c2_rud': cr_c2
         }
+
+        self._calc_coords()
+    
+    def _calc_coords(self):
+        span_fracs = np.unique([
+            0.0, 
+            self.ss['rudder']['b1_rud'], 
+            self.ss['rudder']['b2_rud'], 
+            1.0
+        ])
+        
+        # Calculate local spanwise distance (s) along the surface
+        s = (self.b / 2) * span_fracs
+        
+        # Vectorize X, Y, Z, and Chord calculations simultaneously
+        gamma = np.deg2rad(self.X_rot)
+        
+        xLE = s * np.tan(self.LE_swp_rad) + self.L_offset
+        yLE = self.Y_loc + (s * np.cos(gamma))
+        zLE = self.Z_loc + (s * np.sin(gamma))
+        chords = self.c_r - ((self.c_r - self.c_t) * span_fracs)
+        
+        # Convert arrays back to standard Python lists for JSON export
+        self.xLE_pts = xLE.tolist()
+        self.yLE_pts = yLE.tolist()
+        self.zLE_pts = zLE.tolist()
+        self.chords = chords.tolist()
+
+        #print(f"LE POINT OF VSTAB: {self.LE_point}")
 
 # Testing; enable if plotting VStab independently.
 '''
@@ -373,6 +452,9 @@ class Aircraft:
         hstab.L_abs_HT = L_abs_HT
         hstab.set_global_loc(new_L_offset=L_abs_HT)
 
+        # re-calculate points for AVL export
+        hstab.calc_coords()
+
 
     def add_vstab(self, VStab_parm, VStab_geom, Vstab_rud): # CALL AFTER CREATING wing OBJECT
         # Calc. tail arm and area
@@ -390,6 +472,9 @@ class Aircraft:
         L_abs_VT = L_VT + abs(wing.quart_mac_y) - abs(vstab.quart_mac_y)
         vstab.L_abs_VT = L_abs_VT
         vstab.set_global_loc(new_L_offset=L_abs_VT)
+
+        # re-calculate points for AVL export
+        vstab._calc_coords()
 
 
     def plot_plane(self, ax): # Plot aircraft planform in 2D top-down on XY plane
@@ -431,7 +516,12 @@ class Aircraft:
                 "Z_loc": wing.Z_loc,
                 "Y_rot": wing.Y_rot,
                 "X_rot": wing.X_rot,
-                "Tip_X_rot": wing.washout
+                "Tip_X_rot": wing.washout,
+                'cntl_sqs': wing_control,
+                'xLE_pts': wing.xLE,
+                'yLE_pts': wing.yLE,
+                'zLE_pts': wing.zLE,
+                'chords': wing.chords
             },
             "hstab": {
                 "b_HT": hstab.b,
@@ -441,7 +531,12 @@ class Aircraft:
                 "swp_HT": hstab.LE_swp,
                 "x_loc_HT": hstab.L_abs_HT,
                 "Y_loc": hstab.Y_Loc,
-                "Z_loc": hstab.Z_Loc
+                "Z_loc": hstab.Z_Loc,
+                'cntl_sqs': Hstab_control,
+                'xLE_pts': hstab.xLE_pts,
+                'yLE_pts': hstab.yLE_pts,
+                'zLE_pts': hstab.zLE_pts,
+                'chords': hstab.chords
             },
             "vstab": {
                 "b_VT": vstab.b,
@@ -459,7 +554,12 @@ class Aircraft:
                 "x_loc_VT": vstab.L_abs_VT,
                 "Y_loc": vstab.Y_loc,
                 "Z_loc": vstab.Z_loc,
-                "X_rot": vstab.X_rot
+                "X_rot": vstab.X_rot,
+                'cntl_sqs': Vstab_control,
+                'xLE_pts': vstab.xLE_pts,
+                'yLE_pts': vstab.yLE_pts,
+                'zLE_pts': vstab.zLE_pts, 
+                'chords': vstab.chords
             }
         }
 
@@ -484,6 +584,8 @@ wing.add_flaps(Flap_Y_offset=wing_flap["Flap_Y_start"], cf_c_1=wing_flap['cf_c_1
 wing.add_ailerons(b1_offset=wing_ail['b1_offset'], b2_ail=wing_ail['b2_ail'], ca_c1=wing_ail['ca_c1'], ca_c2=wing_ail['ca_c2'])
 wing.add_slats(b1_slat=wing_slat['b1_slat'], b2_slat=wing_slat['b2_slat'], cs_c1=wing_slat['cs_c1'], cs_c2=wing_slat['cs_c2'])
 
+wing.calc_coords()
+
 # Add to aircraft
 F24HH = Aircraft(name='F24HH', L_fuse=L_fuse)
 F24HH.add_wing(wing)
@@ -496,9 +598,11 @@ F24HH.add_vstab(VStab_parm=VStab_parm, VStab_geom=VStab_geom, Vstab_rud=Vstab_ru
 fig, ax = plt.subplots()
 F24HH.plot_plane(ax)
 plt.title('F24HH Planform')
-plt.show()
+#plt.show()
 
 # Export as json
 F24HH.json_export(fname='airplane_geom2.json')
 
-pprint.pprint(vars(F24HH.surfaces['HStab']))
+#pprint.pprint(vars(F24HH.surfaces['HStab']))
+
+#pprint.pprint(wing.xpoints)
