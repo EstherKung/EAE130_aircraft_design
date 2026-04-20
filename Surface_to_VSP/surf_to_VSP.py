@@ -1,6 +1,10 @@
 """
 Automatically model a simple aircraft in OpenVSP. Calculate and assign wing, wing fuel tank, tail masses. Run CompGeom, MassProp, VSPAERO.
 """
+import openvsp_config
+# Enable graphics and use the facade (separate process) for non-blocking execution
+openvsp_config.LOAD_GRAPHICS = True
+openvsp_config.LOAD_FACADE = True
 
 import openvsp as vsp
 import json
@@ -31,12 +35,12 @@ class Config:
     tail_foils: list       # VStab root & tip, HStab tip, HStab root
 
     # Fixed Weights Parameters
-    W_dg: float = 50213.0  # Design Gross Weight !!! MUST CHANGE TO USE 50% FUEL !!!
+    W_dg: float = 42449  # Design Gross Weight !!! MUST CHANGE TO USE 50% FUEL !!!, lbs
     N_z: float = 10.5      # Design Ultimate Load Factor (7*1.5)
     tc_rt: float = 0.06    # Wing Airfoil Thickness @ Root
-    F_w: float = 6.0       # Fuselage Width @ HStab intersection
+    F_w: float = 6.0       # Fuselage Width @ HStab intersection, ft
     M: float = 1.6         # Design Max Mach Number
-    rho_fuel: float = 6.65 # Density of JP-5 Fuel
+    rho_fuel: float = 6.65 # Density of JP-5 Fuel, lbs/ft^2
 
 
 ########################
@@ -82,16 +86,30 @@ class VSP_Interface:
 
         vsp.ClearVSPModel()
 
+        vsp.InitGUI()
+        vsp.StartGUI()
+
         # Fuselage File
         if include_fuse == True:
             vsp.InsertVSPFile(self.config.fuse_file_path, "")
             logging.info('Importing Fuselage File...')
         elif include_fuse == False:
             logging.info('Fuselage Excluded...')
+
+        vsp.SetAllViews(vsp.CAM_LEFT_ISO)
+        vsp.FitAllViews()
+        vsp.UpdateGUI()
         
         self._Build_Wing()
+        vsp.UpdateGUI()
         self._Build_HStab()
+        vsp.UpdateGUI()
         self._Build_VStab()
+
+        vsp.SetAllViews(vsp.CAM_LEFT_ISO)
+        vsp.FitAllViews()
+        vsp.UpdateGUI()
+        vsp.StopGUI()
 
         vsp.Update()
         vsp.WriteVSPFile(self.planefile)
@@ -123,7 +141,7 @@ class VSP_Interface:
         vsp.SetParmVal(wing_id, "Tip_Chord", "XSec_1", c_mid)
         vsp.SetParmVal(wing_id, "Sweep_Location", "XSec_1", 0.0)
         vsp.SetParmVal(wing_id, "Sweep", "XSec_1", wing["swp_w"])
-        vsp.SetParmVal(wing_id, "SectTess_U", "XSec_1", 13.0) 
+        vsp.SetParmVal(wing_id, "SectTess_U", "XSec_1", 40) 
 
         #Folding Outer Panel
         vsp.SetParmVal(wing_id, "Span", "XSec_2", b_half - y_fold)
@@ -131,7 +149,7 @@ class VSP_Interface:
         vsp.SetParmVal(wing_id, "Tip_Chord", "XSec_2", c_tip)
         vsp.SetParmVal(wing_id, "Sweep_Location", "XSec_2", 0.0)
         vsp.SetParmVal(wing_id, "Sweep", "XSec_2", wing["swp_w"])
-        vsp.SetParmVal(wing_id, "SectTess_U", "XSec_2", 9)
+        vsp.SetParmVal(wing_id, "SectTess_U", "XSec_2", 20)
         vsp.SetParmVal(wing_id, 'Twist', 'XSec_2', wing['Tip_X_rot'])
 
         # Global Positioning 
@@ -139,6 +157,9 @@ class VSP_Interface:
         vsp.SetParmVal(wing_id, "Z_Rel_Location", "XForm", wing["Z_loc"])
         vsp.SetParmVal(wing_id, "Y_Rel_Rotation", "XForm", wing["Y_rot"])
         vsp.SetParmVal(wing_id, "X_Rel_Rotation", "XForm", wing["X_rot"])
+        
+        # Increase Num_W
+        vsp.SetParmVal(wing_id, 'Tess_W', 'Shape', 41)
 
         #Assign to set0, 3, 19
         ########### SET0 = WING/TANK, TAILS, FUSE SURFACE;  SET3 = WING & TAIL ONLY;   SET19 = ALL MASS (USE FOR CG CALC)
@@ -236,10 +257,13 @@ class VSP_Interface:
         vsp.SetParmVal(hstab_id, "Tip_Chord", "XSec_1", hstab["c_t_HT"])
         vsp.SetParmVal(hstab_id, "Sweep_Location", "XSec_1", 0)
         vsp.SetParmVal(hstab_id, "Sweep", "XSec_1", hstab["swp_HT"])
-        vsp.SetParmVal(hstab_id, "SectTess_U", "XSec_1", 13)
+        vsp.SetParmVal(hstab_id, "SectTess_U", "XSec_1", 41)
         vsp.SetParmVal(hstab_id, "X_Rel_Location", "XForm", hstab["x_loc_HT"] + self.global_x_transl)
         vsp.SetParmVal(hstab_id, "Y_Rel_Location", "XForm", hstab["Y_loc"])
         vsp.SetParmVal(hstab_id, "Z_Rel_Location", "XForm", hstab["Z_loc"])
+
+        # Increase Num_W
+        vsp.SetParmVal(hstab_id, 'Tess_W', 'Shape', 61)
 
         #Define the HStab Airfoil
         hstab_xsec_surf = vsp.GetXSecSurf(hstab_id, 0)
@@ -272,13 +296,15 @@ class VSP_Interface:
         vsp.SetParmVal(vstab_id, "Tip_Chord", "XSec_1", vstab["c_t_VT"])
         vsp.SetParmVal(vstab_id, "Sweep_Location", "XSec_1", 0)
         vsp.SetParmVal(vstab_id, "Sweep", "XSec_1", vstab["swp_VT"])
-        vsp.SetParmVal(vstab_id, "SectTess_U", "XSec_1", 11.0)
+        vsp.SetParmVal(vstab_id, "SectTess_U", "XSec_1", 21)
         vsp.SetParmVal(vstab_id, "X_Rel_Location", "XForm", vstab["x_loc_VT"] + self.global_x_transl)
         vsp.SetParmVal(vstab_id, "Y_Rel_Location", "XForm", vstab["Y_loc"])
         vsp.SetParmVal(vstab_id, "Z_Rel_Location", "XForm", vstab["Z_loc"])
         vsp.SetParmVal(vstab_id, "X_Rel_Rotation", "XForm", vstab["X_rot"])
         #vsp.SetParmVal(vstab_id, "CapBoundFlag", "Endcap", 0.0) # NEW PARMS IN VSP 3.48; DISABLE IF USING 3.47
         #vsp.SetParmVal(vstab_id, "WakeRootFlag", "Endcap", 0.0) # NEW PARMS IN VSP 3.48; DISABLE IF USING 3.47
+
+        vsp.SetParmVal(vstab_id, 'Tess_W', 'Shape', 33)
 
         #Define the VStab Airfoil
         vstab_xsec_surf = vsp.GetXSecSurf(vstab_id, 0)
@@ -313,6 +339,7 @@ class VSP_Interface:
         # Load vsp file
         vsp.ClearVSPModel()
         vsp.ReadVSPFile(self.planefile)
+
         logging.info(f'Loaded {self.planefile}...')
 
         # Run CompGeom (Fixed to run only on Set 19, which is wings/tank and tail. Hardcoded value, so change in future if time)
@@ -328,6 +355,8 @@ class VSP_Interface:
 
         for name, vol in zip(comp_names, theo_vols):
             self.comp_vols[name.strip()] += vol
+
+        pprint.pprint(self.comp_vols)
 
         # Theoretical wetted areas 
         wet_areas = vsp.GetDoubleResults(compgeom_res_id, "Theo_Area")
@@ -368,12 +397,14 @@ class VSP_Interface:
 
         self.CG = vsp.GetVec3dResults(mass_res_id, 'Total_CG')[0]
         self.xCG = self.CG.x() # use .y() and .z() for other cg components
+        self.yCG = self.CG.y()
+        self.zCG = self.CG.z()
 
         self.tot_mass = vsp.GetDoubleResults(mass_res_id, 'Total_Mass')
 
-        logging.info(f'Calculated Mass Properties: Total Mass = {self.tot_mass} slugs;   XCG = {self.xCG}')
+        logging.info(f'Calculated Mass Properties: Total Mass = {self.tot_mass} slugs;   XCG = {self.xCG};   ZCG = {self.zCG}')
 
-        return self.xCG, self.tot_mass
+        return self.xCG, self.yCG, self.zCG, self.tot_mass
 
     def Assign_Mass(self, densities: dict):
         # Use this method once you run Weigh_Plane.Mass(). Assigns calculated masses of wing, tails and wing tanks to existing vsp model. 
@@ -486,6 +517,16 @@ class VSP_Interface:
         
         # Use 16 CPUs
         vsp.SetParmVal(aero_id, "NCPU", "VSPAERO", 16.0)
+
+        # Adjust these settings for higher accuracy. Otherwise leave default.
+        '''# Adjust number iterations:
+        vsp.SetParmVal(aero_id, 'WakeNumIter', 'VSPAERO', 30)
+
+        # Number wake nodes
+        vsp.SetParmVal(aero_id, 'RootWakeNodes', 'VSPAERO', 20)'''
+
+        # Relaxation
+        vsp.SetParmVal(aero_id, 'WakeRelax', 'VSPAERO', 0.5)
         
         # Init. CG Calc
         vsp.SetParmVal(aero_id, "NumMassSlice", "VSPAERO", 100.0)
@@ -494,7 +535,7 @@ class VSP_Interface:
         current_set3_index = vsp.GetSetIndex("Set_3")
         vsp.SetParmVal(aero_id, "ThinGeomSet", "VSPAERO", float(current_set3_index))
         
-        # No VLM 
+        # No Panel Method
         vsp.SetParmVal(aero_id, "GeomSet", "VSPAERO", float(vsp.SET_NONE))
 
         # Set CG Ref Point
@@ -599,7 +640,7 @@ class Weigh_Plane:
             'VStab_Density': self.M_VT_slug / self.manager.comp_vols['VStab']
         }
 
-        return self.comp_dens
+        return self.comp_dens, self.mass_df.round(3)
 
 
     def _WingMass(self):
@@ -628,6 +669,9 @@ class Weigh_Plane:
 
         logging.info('Wing Weight Parameters:')
         pprint.pprint(self.wing_weight_parms)
+
+        # Store MAC information for later
+        self.W_MAC = wing['c_bar']
 
     def _HStabMass(self):
         # Estimate hstab mass per Raymer's Eqns. (Internal method)
@@ -689,6 +733,17 @@ class Weigh_Plane:
 
         logging.info(f'Volume of Integral Wing Tanks: {self.wtank_vol_gal:.2f} gal;   Weight of Fuel in Wing Tanks: {self.W_WTank_Fuel_lbf:.2f} lbf;   Mass of Fuel in Wing Tanks: {self.M_WTank_Fuel_slug:.2f} slugs')
 
+
+    def CG_Limits(self, lower_SM: float, upper_SM: float, SM: float, xNP: float):
+        self.forward_xCG = lower_SM * self.W_MAC + xNP
+        self.aft_xCG = upper_SM * self.W_MAC + xNP
+
+        logging.info(f'Forward CG Limit = {self.forward_xCG:.2f} ft')
+        logging.info(f'Aft CG Limit = {self.aft_xCG:.2f} ft')
+
+        return self.forward_xCG, self.aft_xCG
+
+
         
 
 
@@ -701,25 +756,40 @@ class Weigh_Plane:
 if __name__ == "__main__":
     config = Config(vsp_filename='F24HH_2',
                     geom_def_path=r'C:\Users\14153\Desktop\Skewl\EAE 130\Python\EAE130_aircraft_design\Flying_Surfaces\airplane_geom2.json',
-                    fuse_file_path=r"C:\Users\14153\Desktop\OpenVSP-3.48.2-win64\VSPFiles\2_SIMPLE_F24HH_FUSE.vsp3",
+                    fuse_file_path=r"C:\Users\14153\Desktop\Skewl\EAE 130\Python\EAE130_aircraft_design\VSP_Files\3_SIMPLE_F24HH_FUSE.vsp3",
                     wing_foils=[r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A006_TEST.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A005.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A004_TEST.dat"],
                     tail_foils=[r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A004.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A005.dat"])
     
     # Initialize and Model the Aircraft in OpenVSP, run CompGeom to get surfaces areas and volumes
     vspfile = VSP_Interface(config=config, global_x_transl=16)
-    vspfile.BuildPlane(include_fuse=True)
+    vspfile.BuildPlane(include_fuse=False)
     vspfile.Run_CompGeom()
 
     # Calculate Masses of surfaces based on CompGeom results and 
     mass = Weigh_Plane(manager=vspfile)
-    desnities = mass.Mass()
+    desnities, comp_mass = mass.Mass()
 
     # Assigns densities to previously created VSP file
     vspfile.Assign_Mass(densities=desnities)
 
     # Perform VSP analyses; MassProps, VSPAERO, etc. 
-    xcg, AC_mass_slug = vspfile.Run_MassProp(n_slice=200)
+    xcg, ycg, zcg, AC_mass_slug = vspfile.Run_MassProp(n_slice=200)
     #vspfile._initialize_NP_VSPAERO(xcg=xcg)
     
     SM, xNP = vspfile.Run_VSPAERO_NP(xcg=xcg)
-    # instead of running vspaero here, we can call AVL to calculate the NP instead for speed
+
+    # Calculate CG Limits
+    forward_xCG, aft_xCG = mass.CG_Limits(lower_SM=-0.15, upper_SM=0.08, SM=SM, xNP=xNP)
+    
+    # Dictionary to store weights information
+    weights_CG = {
+        'xCG [ft]': xcg,
+        'yCG [ft]': ycg,
+        'zCG [ft]': zcg,
+        'Forward CG Limit [ft]': forward_xCG,
+        'Aft CG Limit [ft]': aft_xCG,
+        'MTOW [slug]': AC_mass_slug,
+    }
+
+    pprint.pprint(weights_CG)
+    pprint.pprint(comp_mass)
