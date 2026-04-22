@@ -52,9 +52,11 @@ lambda_ = 35                                # degrees, Leading Edge Sweep Angle
 lambda_deg2rad = (np.pi * lambda_) / 180    # Convert Leading Edge Sweep Angle to Radians
 k = 1.33e-5                             # Skin Roughness Value
 
+# Component Diameters [ft]
 d_fuselage = 6.02 # ft Diameter of Fuselage
-
-l_pylon = 7 # [ft] Length of Armament Pylon
+d_aim_9x = 0.5 # ft Diameter of AIM-9X Sidewinder Missile
+d_aim_120 = 0.5833 # ft Diameter of AIM-120C AMRAAM Missile
+d_mk_83 = 1.166 # ft Diameter of MK-83 General Purpose Bomb
 d_pylon = 0.5 # [ft] Diameter of Armament Pylon
 
 AR_clean = (b**2) / S_ref   # Aspect Ratio Clean Configuration
@@ -91,7 +93,11 @@ l_fuselage_c = 50
 l_wing_cbar = 12.80             # Mean Aerodynamic Chord
 l_HT_cbar = 7.89                # Horizontal Stabilizer Chord
 l_VT_cbar = 6.35                # Vertical Stabilizer Chord
+l_pylon = 7 # [ft] Length of Armament Pylon
 l_droptank = 8.960              # Drop Tank
+l_aim_9x = 10                   # AIM-9X Sidewinder Missile Length
+l_aim_120 = 12                  # AIM-120C AMRAAM Missile Length
+l_mk_83 = 9.834                # MK-83 General Purpose Bomb Length
 
 # Wetted Surface Area of Aircraft Components [ft^2]
 S_wet_fuselage = 653.186
@@ -100,6 +106,9 @@ S_wet_HT = 128.031
 S_wet_VT = 99.377
 S_wet_intake = 146.509 # Air Inlet
 S_wet_droptank = 112.682 # Drop Tank
+S_wet_aim_9x = 21.587
+S_wet_aim_120 = 27.415 
+S_wet_mk_83 = 31.873
 S_wet_pylon_center = 21.314 # Centerline Pylon (Carrying Drop Tank)
 S_wet_pylon_outer = 10.375 # Average of 3 Outer Pylons
 
@@ -110,6 +119,9 @@ R_cutoff_wing = 38.21 * (l_wing_cbar / k) ** 1.053
 R_cutoff_HT = 38.21 * (l_HT_cbar / k) ** 1.053
 R_cutoff_VT = 38.21 * (l_VT_cbar / k) ** 1.053
 R_cutoff_droptank = 38.21 * ((l_wing_cbar / 2) / k) ** 1.053 
+R_cutoff_aim_9x = 38.21 * (l_aim_9x / k) ** 1.053
+R_cutoff_aim_120 = 38.21 * (l_aim_120 / k) ** 1.053
+R_cutoff_mk_83 = 38.21 * (l_mk_83 / k) ** 1.053
 
 # Transonic or Supersonic (cd = cruise/dash)
 R_cutoff_fuselage_cd = 44.62 * ((l_fuselage_c / k) ** 1.053) * (M_dash ** 1.16)
@@ -117,6 +129,9 @@ R_cutoff_wing_cd = 44.62 * ((l_wing_cbar / k) ** 1.053) * (M_dash ** 1.16)
 R_cutoff_HT_cd = 44.62 * ((l_HT_cbar / k) ** 1.053) * (M_dash ** 1.16)
 R_cutoff_VT_cd = 44.62 * ((l_VT_cbar / k) ** 1.053) * (M_dash ** 1.16)
 R_cutoff_droptank_cd = 44.62 * ((l_wing_cbar / 2 / k) ** 1.053) * (M_dash ** 1.16)
+R_cutoff_aim_9x_cd = 44.62 * ((l_aim_9x / k) ** 1.053) * (M_dash ** 1.16)
+R_cutoff_aim_120_cd = 44.62 * ((l_aim_120 / k) ** 1.053) * (M_dash ** 1.16)
+R_cutoff_mk_83_cd = 44.62 * ((l_mk_83 / k) ** 1.053) * (M_dash ** 1.16)
 
 # Laminar Skin Friction Coefficient for Components
 C_fc_lam_fuselage = 1.328 / np.sqrt(R_cutoff_fuselage)
@@ -124,6 +139,9 @@ C_fc_lam_wing = 1.328 / np.sqrt(R_cutoff_wing)
 C_fc_lam_HT = 1.328 / np.sqrt(R_cutoff_HT)
 C_fc_lam_VT = 1.328 / np.sqrt(R_cutoff_VT)
 C_fc_lam_droptank = 1.328 / np.sqrt(R_cutoff_droptank)
+C_fc_lam_aim_9x = 1.328 / np.sqrt(R_cutoff_aim_9x)
+C_fc_lam_aim_120 = 1.328 / np.sqrt(R_cutoff_aim_120)
+C_fc_lam_mk_83 = 1.328 / np.sqrt(R_cutoff_mk_83)
 #print("Laminar Skin Friction Coefficients:")
 #print("Fuselage: ", C_fc_lam_fuselage)
 #print("Wing: ", C_fc_lam_wing)
@@ -138,6 +156,9 @@ C_fc_turb_wing_c = 0.455 / ((np.log10(R_cutoff_wing_cd) ** 2.58) * (1 + 0.144 * 
 C_fc_turb_HT_c = 0.455 / ((np.log10(R_cutoff_HT_cd) ** 2.58) * (1 + 0.144 * M_cruise**2) ** 0.65)
 C_fc_turb_VT_c = 0.455 / ((np.log10(R_cutoff_VT_cd) ** 2.58) * (1 + 0.144 * M_cruise**2) ** 0.65)
 C_fc_turb_droptank = 0.455 / ((np.log10(R_cutoff_droptank_cd) ** 2.58) * (1 + 0.144 * M_cruise**2) ** 0.65)
+C_fc_turb_aim_9x = 0.455 / ((np.log10(R_cutoff_aim_9x_cd) ** 2.58) * (1 + 0.144 * M_cruise**2) ** 0.65)
+C_fc_turb_aim_120 = 0.455 / ((np.log10(R_cutoff_aim_120_cd) ** 2.58) * (1 + 0.144 * M_cruise**2) ** 0.65)
+C_fc_turb_mk_83 = 0.455 / ((np.log10(R_cutoff_mk_83_cd) ** 2.58) * (1 + 0.144 * M_cruise**2) ** 0.65)
 #print("Turbulent Skin Friction Coefficients at Cruise Conditions:")
 #print("Fuselage: ", C_fc_turb_fuselage_c)
 #print("Wing: ", C_fc_turb_wing_c)
@@ -151,6 +172,9 @@ C_fc_turb_wing_d = 0.455 / ((np.log10(R_cutoff_wing_cd) ** 2.58) * (1 + 0.144 * 
 C_fc_turb_HT_d = 0.455 / ((np.log10(R_cutoff_HT_cd) ** 2.58) * (1 + 0.144 * M_dash**2) ** 0.65)
 C_fc_turb_VT_d = 0.455 / ((np.log10(R_cutoff_VT_cd) ** 2.58) * (1 + 0.144 * M_dash**2) ** 0.65)
 C_fc_turb_droptank = 0.455 / ((np.log10(R_cutoff_droptank_cd) ** 2.58) * (1 + 0.144 * M_dash**2) ** 0.65)
+C_fc_turb_aim_9x = 0.455 / ((np.log10(R_cutoff_aim_9x_cd) ** 2.58) * (1 + 0.144 * M_dash**2) ** 0.65)
+C_fc_turb_aim_120 = 0.455 / ((np.log10(R_cutoff_aim_120_cd) ** 2.58) * (1 + 0.144 * M_dash**2) ** 0.65)
+C_fc_turb_mk_83 = 0.455 / ((np.log10(R_cutoff_mk_83_cd) ** 2.58) * (1 + 0.144 * M_dash**2) ** 0.65)
 #print("Turbulent Skin Friction Coefficients at Supersonic Conditions:")
 #print("Fuselage: ", C_fc_turb_fuselage_d)
 #print("Wing: ", C_fc_turb_wing_d)
@@ -187,13 +211,29 @@ FF_VT_dash = (1 + (0.6/(0.25)*tc_VT) + 100*(tc_VT) ** 4) * ((1.34 * M_dash**0.18
 
 # External Armament Pylon:
 f_pylon = l_pylon / d_pylon # Fineness Ratio for Armament Pylon
-FF_pylon = (1 + 0.35 / f_pylon) # Form Factor for Armament Pylon (Raymer 12.32)
+FF_pylon = 1 + (0.35 / f_pylon) # Form Factor for Armament Pylon (Raymer 12.32)
 FF_pylon_supersonic = 1 # Form Factor for Armament Pylon at Supersonic
 #print("Form Factor for Smooth Armament Pylon: ", FF_pylon)
 
 # Air Inlet (FF)
 # Using a Diverterless Supersonic Inlet (Air Force Research Laboratory, AFRL) (as seen with F-35)
 # reducing the need for a complex inlet design, mechanical maintainence, and associated pressure drag.
+
+# AIM-9X Sidewinder Missile (FF)
+f_aim_9x = l_aim_9x / d_aim_9x # Fineness Ratio for AIM-9X Sidewinder Missile
+FF_aim_9x = 1 + (0.35 / f_aim_9x) # Form Factor for AIM-9X Sidewinder Missile (Raymer 12.32)
+FF_aim_9x_supersonic = 1 # Form Factor for AIM-9X Sidewinder Missile at Supersonic
+
+# AIM-120C AMRAAM Missile (FF)
+f_aim_120 = l_aim_120 / d_aim_120 # Fineness Ratio for AIM-120C AMRAAM Missile
+FF_aim_120 = 1 + (0.35 / f_aim_120) # Form Factor for AIM-120C AMRAAM Missile (Raymer 12.32)
+FF_aim_120_supersonic = 1 # Form Factor for AIM-120C AMRAAM Missile at Supersonic
+
+# MK-83 General Purpose Bomb (FF)
+f_mk_83 = l_mk_83 / d_mk_83 # Fineness Ratio for MK-83 General Purpose Bomb
+FF_mk_83 = 1 + (0.35 / f_mk_83) # Form Factor for MK-83 General Purpose Bomb (Raymer 12.32)
+FF_mk_83_supersonic = 1 # Form Factor for MK-83 General Purpose Bomb at Supersonic
+
 
 # Component Drag Coefficients for Cruise Conditions
 Q_Fuselage = 1.0 # Interference Factor for Fuselage
@@ -202,12 +242,18 @@ Q_HT = 1.05 # Interference Factor for Horizontal Tail (Raymer Table 12.6)
 Q_VT = 1.03 # Interference Factor for Clean V-Tail
 Q_droptank = 1.5
 Q_Nacelle = 1.3 # Interference Factor for Armament Nacelles
+Q_aim_9x = 1.25 # Interference Factor for AIM-9X Sidewinder Missile
+Q_aim_120 = 1.5 # Interference Factor for AIM-120C AMRAAM Missile
+Q_mk_83 = 1.5 # Interference Factor for MK-83 General Purpose Bomb
 
 CD_fuselage_lam = (C_fc_lam_fuselage * FF_fuselage * Q_Fuselage * S_wet_fuselage)
 CD_wing_lam = (C_fc_lam_wing * FF_wing_cruise * Q_wing * S_wet_wing)
 CD_HT_lam = (C_fc_lam_HT * FF_HT_cruise * Q_HT * S_wet_HT)
 CD_VT_lam = (C_fc_lam_VT * FF_VT_cruise * Q_VT * S_wet_VT)
 CD_droptank_lam = (C_fc_lam_droptank * FF_wing_cruise * Q_droptank * S_wet_droptank)
+CD_aim_9x_lam = (C_fc_lam_aim_9x * FF_aim_9x * Q_aim_9x * S_wet_aim_9x)
+CD_aim_120_lam = (C_fc_lam_aim_120 * FF_aim_120 * Q_aim_120 * S_wet_aim_120)
+CD_mk_83_lam = (C_fc_lam_mk_83 * FF_mk_83 * Q_mk_83 * S_wet_mk_83)
 #print("Component Drag Coefficients during Cruise Conditions with Laminar Flow:")
 #print("Fuselage: ", CD_fuselage_lam)
 #print("Wing: ", CD_wing_lam)
@@ -220,6 +266,9 @@ CD_wing_turb_c = (C_fc_turb_wing_c * FF_wing_cruise * Q_wing * S_wet_wing)
 CD_HT_turb_c = (C_fc_turb_HT_c * FF_HT_cruise * Q_HT * S_wet_HT)
 CD_VT_turb_c = (C_fc_turb_VT_c * FF_VT_cruise * Q_VT * S_wet_VT)
 CD_droptank_turb_c = (C_fc_turb_droptank * FF_wing_cruise * Q_droptank * S_wet_droptank)
+CD_aim_9x_turb_c = (C_fc_turb_aim_9x * FF_aim_9x * Q_aim_9x * S_wet_aim_9x)
+CD_aim_120_turb_c = (C_fc_turb_aim_120 * FF_aim_120 * Q_aim_120 * S_wet_aim_120)
+CD_mk_83_turb_c = (C_fc_turb_mk_83 * FF_mk_83 * Q_mk_83 * S_wet_mk_83)
 #print("Component Drag Coefficients during Cruise Conditions with Turbulent Flow:")
 #print("Fuselage: ", CD_fuselage_turb_c)
 #print("Wing: ", CD_wing_turb_c)
@@ -233,6 +282,9 @@ CD_wing_turb_d = (C_fc_turb_wing_d * FF_wing_dash * Q_Fuselage * S_wet_wing)
 CD_HT_turb_d = (C_fc_turb_HT_d * FF_HT_dash * Q_Fuselage * S_wet_HT)
 CD_VT_turb_d = (C_fc_turb_VT_d * FF_VT_dash * Q_Fuselage * S_wet_VT)
 CD_droptank_turb_d = (C_fc_turb_droptank * FF_wing_dash * Q_Fuselage * S_wet_droptank)
+CD_aim_9x_turb_d = (C_fc_turb_aim_9x * FF_aim_9x_supersonic * Q_Fuselage * S_wet_aim_9x)
+CD_aim_120_turb_d = (C_fc_turb_aim_120 * FF_aim_120_supersonic * Q_Fuselage * S_wet_aim_120)
+CD_mk_83_turb_d = (C_fc_turb_mk_83 * FF_mk_83_supersonic * Q_Fuselage * S_wet_mk_83)
 #print("Component Drag Coefficients during Supersonic Dash Conditions with Turbulent Flow:")
 #print("Fuselage: ", CD_fuselage_turb_d)
 #print("Wing: ", CD_wing_turb_d)
@@ -294,7 +346,7 @@ CD_slat_full = F_slat * (c_slat / l_wing_cbar) * (S_slats / S_ref) * (15 - 10) #
 # Estimated Total Aircraft Drag Polar (OpenVSP)
 #CD0 = 0.01290 # Estimated Zero-Lift Drag Coefficient (CD0) for Cruise Conditions
 CD_LP = 0.10 # Estimated Leakage & Protuberance Drag (Raymer Table 12.9)
-CD_wave = 0.0 # Estimated Wave Drag at Supersonic Dash Conditions (Mach 1.6) (OpenVSP Wave Drag)
+CD_wave = 0.0533 # Estimated Wave Drag at Supersonic Dash Conditions (Mach 1.6) (OpenVSP Wave Drag)
 CD0_lam = (1/S_ref) * (CD_fuselage_lam + CD_wing_lam + CD_HT_lam + CD_VT_lam + CD_droptank_lam) + CD_LP  # Total Zero-Lift Drag Coefficient (CD0) for Cruise Conditions
 CD0_turb_c = (1/S_ref) * (CD_fuselage_turb_c + CD_wing_turb_c + CD_HT_turb_c + CD_VT_turb_c + CD_droptank_turb_c) + CD_LP  # Total Zero-Lift Drag Coefficient (CD0) for Cruise Conditions (Turbulent Flow)
 CD0_turb_d = (1/S_ref) * (CD_fuselage_turb_d + CD_wing_turb_d + CD_HT_turb_d + CD_VT_turb_d + CD_droptank_turb_d) + CD_LP  # Total Zero-Lift Drag Coefficient (CD0) for Supersonic Dash Conditions (Turbulent Flow)
@@ -365,4 +417,4 @@ plt.axhline(y=0, color='black', linewidth=0.5)
 plt.title("Drag Polar for F/A-24 Hyper-Hornet")
 plt.legend(loc = 'lower right')
 plt.grid(False)
-plt.show() 
+plt.show()
