@@ -41,12 +41,13 @@ q_dash = 0.5 * rho * V_dash**2
 # Aircraft Geometric Parameters
 W_lb = 49191 # lbs (MTOW)
 W_kg = W_lb * 0.453592 # kg
-b = 35                                      # Wingspan
+b = 40.34229                                      # Wingspan
 b_flap = (0.694061 - 0.188388) * b          # Flap Span (from OpenVSP)
 S_ref = 465                                 # ft^2 Reference Wing Area
 S_ref_m2 = S_ref * 0.092903 # m^2
 S_wet = 1761.678                            # ft^2 Wetted Surface Area of Aircraft
-S_flap = 235.12                             # ft^2 Flap Area
+S_flap = 251                             # ft^2 Flap Area
+S_slats = 360                            # ft^2 Slat Area
 lambda_ = 35                                # degrees, Leading Edge Sweep Angle  
 lambda_deg2rad = (np.pi * lambda_) / 180    # Convert Leading Edge Sweep Angle to Radians
 k = 1.33e-5                             # Skin Roughness Value
@@ -67,6 +68,9 @@ e_landing = 0.725
 K_clean = 1 / (np.pi * AR_clean * e) # Induced Drag Factor for Clean Configuration
 K_TO = 1 / (np.pi * AR_flap * e_TO)
 K_landing = 1 / (np.pi * AR_flap * e_landing)
+#print("Induced Drag Factor for Clean Configuration: ", K_clean)
+#print("Induced Drag Factor for Takeoff Configuration: ", K_TO)
+#print("Induced Drag Factor for Landing Configuration: ", K_landing)
 
 # Estimating Zero-Lift Drag using Component Build-up Method (Cruise Conditions)
 #CD0 = 1/S_ref
@@ -251,27 +255,41 @@ A_speedbrake = 12.5 # ft^2 Speed Brake Area
 #D_q_dash = (0.064 + 0.4042*(M_dash - 3.84) ** 2) * A_base
 D_q_speed_brake_subsonic = 0.139 + 0.419*((M_cruise-0.161**2)) * A_speedbrake # Fuselage-mounted Speed Brake Drag Area (Raymer 12.37)
 D_q_speed_brake_supersonic = 0.064 + (0.4042*(M_dash - 3.84) ** 2) * A_speedbrake # Fuselage-mounted Speed Brake Drag Area at Supersonic Conditions (Raymer 12.38)
-D_q_arresting_hook = 0.10 # Drag from Arresting Hook (Raymer 12.34)
+D_q_arresting_hook = 0.5 # Drag from Arresting Hook (Raymer 12.34)
 D_q_landing_gear = 0.25 # Drag from Landing Gear (Raymer Table 12.7)
-CD_speedbrake = (1/S_ref) *  (D_q_speed_brake_subsonic)
+#CD_speedbrake = (1/S_ref) *  (D_q_speed_brake_subsonic)
+#CD_speedbrake = 0.5
 CD_arresting_hook = (1/S_ref) * D_q_arresting_hook
-CD_gear = (1/S_ref) * (3*D_q_landing_gear)
+CD_arresting_hook = 0.025
+CD_gear_ = (1/S_ref) * (3*D_q_landing_gear)
+CD_gear = 0.025
 #print("Speed Brake Drag Coefficient at Subsonic Conditions: ", CD_speedbrake)
 #print("Arresting Hook Drag Coefficient: ", CD_arresting_hook)
-print("Landing Gear Drag Coefficient: ", CD_gear)
+#print("Landing Gear Drag Coefficient: ", CD_gear_)
+#print("Landing Gear Drag Coefficient: ", CD_gear)
 
 # Traditionally, F/A-18 has 3 Flap Settings (AUTO, HALF, FULL) for the following conditions (Cruise, Takeoff, Landing) respectively.
 # The following is the deflection angles associated with each flap configuration:
 # AUTO = 0 - 17 degrees | HALF = ~ 30 degrees | FULL = ~ 45 degrees
 # Estimating Flap Drag (Slotted Flaps)
 F_flap = 0.0074 # Flap Form Factor (Slotted Flaps)
-cf = 0.25 * l_wing_cbar # Flap Chord Length
-CD_flap_auto = F_flap * (cf / l_wing_cbar) * (S_flap / S_ref) * (0 - 10) # Flap Drag Coefficient (Raymer 12.61)
-CD_flap_half = F_flap * (cf / l_wing_cbar) * (S_flap / S_ref) * (30 - 10) # Flap Drag Coefficient (Raymer 12.61)
-CD_flap_full = F_flap * (cf / l_wing_cbar) * (S_flap / S_ref) * (45 - 10) # Flap Drag Coefficient (Raymer 12.61)
+c_flap = 0.25 * l_wing_cbar # Flap Chord Length
+CD_flap_auto = F_flap * (c_flap / l_wing_cbar) * (S_flap / S_ref) * (0 - 10) # Flap Drag Coefficient (Raymer 12.61)
+CD_flap_half = F_flap * (c_flap / l_wing_cbar) * (S_flap / S_ref) * (30 - 10) # Flap Drag Coefficient (Raymer 12.61)
+CD_flap_full = F_flap * (c_flap / l_wing_cbar) * (S_flap / S_ref) * (45 - 10) # Flap Drag Coefficient (Raymer 12.61)
 #print("Auto Flap Drag Coefficient: ", CD_flap_auto)
 #print("Half Flap Drag Coefficient: ", CD_flap_half)
 #print("Full Flap Drag Coefficient: ", CD_flap_full)
+
+# Slat Deployment (Great Book of Modern Warplanes Spick, Mike, ed.)
+F_slat = 0.0074
+c_slat = 0.15 * l_wing_cbar
+CD_slat_auto = F_slat * (c_slat / l_wing_cbar) * (S_slats / S_ref) * (0 - 10) # Slat Drag Coefficient 
+CD_slat_half = F_slat * (c_slat / l_wing_cbar) * (S_slats / S_ref) * (15 - 10) # Slat Drag Coefficient 
+CD_slat_full = F_slat * (c_slat / l_wing_cbar) * (S_slats / S_ref) * (15 - 10) # Slat Drag Coefficient 
+#print("Auto Slat Drag Coefficient: ", CD_slat_auto)
+#print("Half Slat Drag Coefficient: ", CD_slat_half)
+#print("Full Slat Drag Coefficient: ", CD_slat_full)
 
 # Estimated Total Aircraft Drag Polar (OpenVSP)
 #CD0 = 0.01290 # Estimated Zero-Lift Drag Coefficient (CD0) for Cruise Conditions
@@ -280,16 +298,16 @@ CD_wave = 0.0 # Estimated Wave Drag at Supersonic Dash Conditions (Mach 1.6) (Op
 CD0_lam = (1/S_ref) * (CD_fuselage_lam + CD_wing_lam + CD_HT_lam + CD_VT_lam + CD_droptank_lam) + CD_LP  # Total Zero-Lift Drag Coefficient (CD0) for Cruise Conditions
 CD0_turb_c = (1/S_ref) * (CD_fuselage_turb_c + CD_wing_turb_c + CD_HT_turb_c + CD_VT_turb_c + CD_droptank_turb_c) + CD_LP  # Total Zero-Lift Drag Coefficient (CD0) for Cruise Conditions (Turbulent Flow)
 CD0_turb_d = (1/S_ref) * (CD_fuselage_turb_d + CD_wing_turb_d + CD_HT_turb_d + CD_VT_turb_d + CD_droptank_turb_d) + CD_LP  # Total Zero-Lift Drag Coefficient (CD0) for Supersonic Dash Conditions (Turbulent Flow)
-print("Estimated Zero-Lift Drag Coefficient (CD0) for Cruise Conditions with Laminar Flow: ", CD0_lam)
-print("Estimated Zero-Lift Drag Coefficient (CD0) for Cruise Conditions with Turbulent Flow: ", CD0_turb_c)
-print("Estimated Zero-Lift Drag Coefficient (CD0) for Supersonic Dash Conditions with Turbulent Flow: ", CD0_turb_d)
+#print("Estimated Zero-Lift Drag Coefficient (CD0) for Cruise Conditions with Laminar Flow: ", CD0_lam)
+#print("Estimated Zero-Lift Drag Coefficient (CD0) for Cruise Conditions with Turbulent Flow: ", CD0_turb_c)
+#print("Estimated Zero-Lift Drag Coefficient (CD0) for Supersonic Dash Conditions with Turbulent Flow: ", CD0_turb_d)
 
 # Supersonic Lift-Curve Slope Estimation 
 #B = np.sqrt(M_dash**2 - 1) #(Raymer 12.13)
 #CL_alpha_supersonic = 4 / B #(Raymer 12.12)
 
 # Total CD of Aircraft for all 5 Configurations
-CL_clean = np.linspace(-1, 2, num=100)
+CL_clean = np.linspace(-1, 2.5, num=100)
 CL_TO = np.linspace(-1.5, 2.5, num=100)
 CL_Landing = np.linspace(-3, 3, num=100)
 
@@ -302,30 +320,49 @@ CL_Landing = np.linspace(-3, 3, num=100)
 #CD0_Landing = CD0_turb_c + CD_flap_full + CD_gear + CD_speedbrake + CD_arresting_hook
 
 # NACA 64A005 (Symmetrical Airfoil for Wing, Horizontal Tail, Vertical Tail)
-CD_clean = CD0_turb_c + CD_flap_auto + (K_clean*(CL_clean)**2) # + (CD_trim)                    # Clean, Cruise
-CD_TO_GD = CD0_turb_c  + (CD_flap_half) + CD_gear + (K_TO*(CL_TO)**2)  # + (CD_trim)         # Takeoff Flaps, Gear Down
-CD_TO_GU = CD0_turb_c + (CD_flap_half) + (K_TO*(CL_TO)**2)             # + (CD_trim)                # Takeoff Flaps, Gear Up
-CD_L_GD = CD0_turb_c + (CD_flap_full) + CD_gear + CD_speedbrake + CD_arresting_hook + (K_landing*(CL_Landing)**2)      # Landing Flaps, Gear Down
-CD_L_GU = CD0_turb_c + (CD_flap_full) + CD_speedbrake + CD_arresting_hook + (K_landing*(CL_Landing)**2)     # Landing Flaps, Gear Up
+CD_clean = CD0_turb_c + CD_flap_auto + CD_slat_auto + (K_clean*(CL_clean)**2) # + (CD_trim)                    # Clean, Cruise
+CD_TO_GD = CD0_turb_c  + CD_flap_half + CD_slat_half + CD_gear + (K_TO*(CL_TO)**2)  # + (CD_trim)         # Takeoff Flaps, Gear Down
+CD_TO_GU = CD0_turb_c + CD_flap_half + CD_slat_half + (K_TO*(CL_TO)**2)             # + (CD_trim)                # Takeoff Flaps, Gear Up
+CD_L_GD = CD0_turb_c + CD_flap_full + CD_slat_full + CD_gear + CD_arresting_hook + (K_landing*(CL_Landing)**2)      # Landing Flaps, Gear Down
+CD_L_GU = CD0_turb_c + CD_flap_full + CD_slat_full + CD_arresting_hook + (K_landing*(CL_Landing)**2)     # Landing Flaps, Gear Up
 
-CL_min = -0.5
-CL_max = 2.5
-mask = (CL_clean >= CL_min) & (CL_clean <= CL_max)
+# Non-induced Drag Coefficients for each configuration
+CD_clean_ = CD0_turb_c + CD_flap_auto + CD_slat_auto
+CD_TO_GD_ = CD0_turb_c  + CD_flap_half + CD_slat_half + CD_gear
+CD_TO_GU_ = CD0_turb_c + CD_flap_half + CD_slat_half
+CD_L_GD_ = CD0_turb_c + CD_flap_full + CD_slat_full + CD_gear + CD_arresting_hook #+ CD_speedbrake 
+CD_L_GU_ = CD0_turb_c + CD_flap_full + CD_slat_full + CD_arresting_hook #+  CD_speedbrake 
+#print("CD for Clean Configuration: ", CD_clean_)
+#print("CD for Takeoff, Gear Down ", CD_TO_GD_)
+#print("CD for Takeoff, Gear Up ", CD_TO_GU_)
+#print("CD for Landing, Gear Down ", CD_L_GD)
+#print("CD for Landing, Gear Up ", CD_L_GU)
+
+CL_min = -0.8
+
+#XFOIL Estimates for CL
+CL_max_cruise = 0.535 
+CL_max_takeoff = 1.67
+CL_max_landing = 1.86
+
+mask_cruise = (CL_clean >= CL_min) & (CL_clean <= CL_max_cruise)
+mask_takeoff = (CL_TO >= CL_min) & (CL_TO <= CL_max_takeoff)
+mask_landing = (CL_Landing >= CL_min) & (CL_Landing <= CL_max_landing)
 
 plt.figure(figsize=(10, 6))  
-plt.plot(CD_clean[mask], CL_clean[mask], label='Clean, Cruise')
-plt.plot(CD_TO_GU, CL_TO, label="Takeoff Flaps + Gear Up")
-plt.plot(CD_TO_GD, CL_TO, label="Takeoff Flaps + Gear Down")
-plt.plot(CD_L_GU, CL_Landing, label="Landing Flaps + Gear Up")
-plt.plot(CD_L_GD, CL_Landing, label="Landing Flaps + Gear Down")
-plt.xlim(0,1)
+plt.plot(CD_clean[mask_cruise], CL_clean[mask_cruise], label='Clean, Cruise')
+plt.plot(CD_TO_GU[mask_takeoff], CL_TO[mask_takeoff], label='Takeoff Flaps + Gear Up')
+plt.plot(CD_TO_GD[mask_takeoff], CL_TO[mask_takeoff], label='Takeoff Flaps + Gear Down')
+plt.plot(CD_L_GU[mask_landing], CL_Landing[mask_landing], label='Landing Flaps + Gear Up')
+plt.plot(CD_L_GD[mask_landing], CL_Landing[mask_landing], label='Landing Flaps + Gear Down')
+plt.xlim(0,0.5)
 plt.xticks(np.arange(0, 1.1, 0.1))
-plt.yticks(np.arange(-2, 3.5, 0.5))
-plt.ylim(-2,3)
+plt.yticks(np.arange(-2, 2.6, 0.5))
+plt.ylim(-2,2.6)
 plt.xlabel("$C_D$")
 plt.ylabel("$C_L$")
-plt.axhline(y=0, color='black', linewidth=1)  
+plt.axhline(y=0, color='black', linewidth=0.5)  
 plt.title("Drag Polar for F/A-24 Hyper-Hornet")
-plt.legend(loc = 'upper left')
+plt.legend(loc = 'lower right')
 plt.grid(False)
 plt.show() 
