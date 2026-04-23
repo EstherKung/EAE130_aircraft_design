@@ -388,9 +388,9 @@ print("Estimated Zero-Lift Drag Coefficient (CD0) for Cruise Conditions with Tur
 #CL_alpha_supersonic = 4 / B #(Raymer 12.12)
 
 # Total CD of Aircraft for all 5 Configurations
-CL_clean = np.linspace(-1, 2.5, num=100)
+'''CL_clean = np.linspace(-1, 2.5, num=100)
 CL_TO = np.linspace(-1.5, 2.5, num=100)
-CL_Landing = np.linspace(-3, 3, num=100)
+CL_Landing = np.linspace(-3, 3, num=100)'''
 
 #CL_min_drag = W_kg / (q_cruise * S_ref_m2) # Lift Coefficient at Minimum Drag Condition (Approximately at Cruise) (NEED CITATION!!!!!!!)
 #CL_min_drag = 0.25
@@ -400,13 +400,29 @@ CL_Landing = np.linspace(-3, 3, num=100)
 #CD0_TO = CD0_turb_c + CD_flap_half 
 #CD0_Landing = CD0_turb_c + CD_flap_full + CD_gear + CD_speedbrake + CD_arresting_hook
 
+### RYUYA CODE RYUYA CODE ALERT ###
+avl_data = pd.read_csv('EAE130_aircraft_design/Prelim_Drag_Polar_Data.csv')
+
+CL_clean = avl_data['Cruise_CL'].values
+CL_TO = avl_data['Takeoff_CL'].values
+CL_Landing = avl_data['Landing_CL'].values
+
+CDi_clean = avl_data['Cruise_CDi'].values
+CDi_TO = avl_data['Takeoff_CDi'].values
+CDi_Landing = avl_data['Landing_CDi'].values
+
 # NACA 64A005 (Symmetrical Airfoil for Wing, Horizontal Tail, Vertical Tail)
 #+ CD_flap_auto + CD_slat_auto + 
-CD_clean = (CD0_turb_c - CD_flap_auto - CD_slat_auto + (K_clean*(CL_clean - 0.1)**2) )  #+ (CD_trim)                    # Clean, Cruise
-CD_TO_GD = (CD0_turb_c  + CD_flap_half + CD_slat_half + CD_gear + (K_TO*(CL_TO - 0.1)**2) )   # + (CD_trim)         # Takeoff Flaps, Gear Down
-CD_TO_GU = (CD0_turb_c + CD_flap_half + CD_slat_half + (K_TO*(CL_TO - 0.1)**2) )          # + (CD_trim)                # Takeoff Flaps, Gear Up
-CD_L_GD = (CD0_turb_c + CD_flap_full + CD_slat_full + CD_gear + CD_arresting_hook + (K_landing*(CL_Landing - 0.1)**2) )      # Landing Flaps, Gear Down
-CD_L_GU = (CD0_turb_c + CD_flap_full + CD_slat_full + CD_arresting_hook + (K_landing*(CL_Landing - 0.1)**2) )     # Landing Flaps, Gear Up
+
+# Fudge factor to have only viscous effects flaps
+Flap_FF = 0.6
+
+CD_clean = (CD0_turb_c  + CDi_clean)  #+ (CD_trim)                    # Clean, Cruise
+CD_TO_GD = (CD0_turb_c  + Flap_FF * CD_flap_half + Flap_FF * CD_slat_half + CD_gear + CDi_TO )   # + (CD_trim)         # Takeoff Flaps, Gear Down
+CD_TO_GU = (CD0_turb_c + Flap_FF * CD_flap_half + Flap_FF * CD_slat_half + CDi_TO )          # + (CD_trim)                # Takeoff Flaps, Gear Up
+CD_L_GD = (CD0_turb_c + Flap_FF * CD_flap_full + Flap_FF * CD_slat_full + CD_gear + CD_arresting_hook + CDi_Landing )      # Landing Flaps, Gear Down
+CD_L_GU = (CD0_turb_c + Flap_FF * CD_flap_full + Flap_FF * CD_slat_full + CD_arresting_hook + CDi_Landing )     # Landing Flaps, Gear Up
+
 
 # Non-induced Drag Coefficients for each configuration
 CD_clean_ = (CD0_turb_c) - (CD_flap_auto + CD_slat_auto) 
@@ -431,21 +447,21 @@ mask_cruise = (CL_clean >= CL_min) & (CL_clean <= CL_max_cruise)
 mask_takeoff = (CL_TO >= CL_min) & (CL_TO <= CL_max_takeoff)
 mask_landing = (CL_Landing >= CL_min) & (CL_Landing <= CL_max_landing)
 
-plt.figure(figsize=(8, 4))  
+plt.figure(figsize=(8, 6))  
 plt.plot(CD_clean[mask_cruise], CL_clean[mask_cruise], label='Clean, Cruise')
 plt.plot(CD_TO_GU[mask_takeoff], CL_TO[mask_takeoff], label='Takeoff Flaps + Gear Up')
 plt.plot(CD_TO_GD[mask_takeoff], CL_TO[mask_takeoff], label='Takeoff Flaps + Gear Down')
 plt.plot(CD_L_GU[mask_landing], CL_Landing[mask_landing], label='Landing Flaps + Gear Up')
 plt.plot(CD_L_GD[mask_landing], CL_Landing[mask_landing], label='Landing Flaps + Gear Down')
-plt.xlim(0,1)
-plt.xticks(np.arange(0, 1.1, 0.25))
-plt.yticks(np.arange(-2, 2.1, 0.5))
-plt.ylim(-2,2)
+#plt.xlim(0,1)
+#plt.xticks(np.arange(0, 1.1, 0.25))
+#plt.yticks(np.arange(-2, 2.1, 0.5))
+#plt.ylim(-2,2)
 plt.xlabel("$C_D$")
 plt.ylabel("$C_L$")
 plt.axhline(y=0, color='black', linewidth=0.5)  
 plt.title("Drag Polar for F/A-24 Hyper-Hornet")
 plt.legend(loc = 'lower right')
-plt.grid(False)
-plt.savefig("/Users/jamiehuynh/Git/refined_drag_polar.pdf")
+plt.grid(True)
+plt.savefig(r"C:\Users\14153\Desktop\Skewl\EAE 130\Python\EAE130_aircraft_design\Drag\EAE130_aircraft_design\refined_drag_polar2.pdf")
 plt.show() 
