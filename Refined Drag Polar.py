@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from ambiance import Atmosphere
-import matplotlib.pyplot as plt
+
 plt.rcParams["font.family"] = "Times New Roman"
 
 # Convert altitude
@@ -11,13 +11,21 @@ h_cruise_m = h_cruise_ft * 0.3048
 
 # Initialize atmosphere
 atm = Atmosphere(h_cruise_m)
+atm_SL = Atmosphere(0)
 
 # Extract properties (SI units)
-rho = atm.density[0]
+rho_alt = atm.density[0]
 mu = atm.dynamic_viscosity[0]
 T = atm.temperature[0]
 P = atm.pressure[0]
 a = atm.speed_of_sound[0]
+
+rho_SL = atm_SL.density[0]
+mu_SL = atm_SL.dynamic_viscosity[0]
+T_SL = atm_SL.temperature[0]
+P_SL = atm_SL.pressure[0]
+a_SL = atm_SL.speed_of_sound[0]
+
 #print("Atmospheric properties at Cruise Altitude:")
 #print("Density: ", rho)
 #print("Dynamic Viscosity: ", mu)
@@ -28,7 +36,7 @@ a = atm.speed_of_sound[0]
 # Cruise @ 35,000 ft
 M_cruise = 0.85
 V_cruise = M_cruise * a
-q_cruise = 0.5 * rho * V_cruise**2
+q_cruise = 0.5 * rho_alt * V_cruise**2
 #print("Cruise Pressure: ", P)
 #print("Cruise Velocity: ", V_cruise)
 #print("Dynamic pressure at cruise: ", q_cruise)
@@ -36,7 +44,17 @@ q_cruise = 0.5 * rho * V_cruise**2
 # Dash(M = 1.6 at 35,000 ft)
 M_dash = 1.6
 V_dash = M_dash * a
-q_dash = 0.5 * rho * V_dash**2
+q_dash = 0.5 * rho_alt * V_dash**2
+
+# Takeoff
+M_TO = 0.24
+V_TO = M_TO * a
+q_TO = 0.5 * rho_SL * V_TO**2
+
+# Landing
+M_L = 0.18
+V_L = M_L * a
+q_L = 0.5 * rho_SL * V_L**2
 
 # Aircraft Geometric Parameters
 W_lb = 49191 # lbs (MTOW)
@@ -150,6 +168,17 @@ C_fc_lam_mk_83 = 1.328 / np.sqrt(R_cutoff_mk_83)
 #print("Drop Tank: ", C_fc_lam_droptank)
 
 # Turbulent Skin Friction Coefficient for Components
+# Takeoff / Landing
+C_fc_turb_fuselage_c = 0.455 / ((np.log10(R_cutoff_fuselage_cd) ** 2.58) * (1 + 0.144 * M_L**2) ** 0.65)
+C_fc_turb_wing_c = 0.455 / ((np.log10(R_cutoff_wing_cd) ** 2.58) * (1 + 0.144 * M_L**2) ** 0.65)
+C_fc_turb_HT_c = 0.455 / ((np.log10(R_cutoff_HT_cd) ** 2.58) * (1 + 0.144 * M_L**2) ** 0.65)
+C_fc_turb_VT_c = 0.455 / ((np.log10(R_cutoff_VT_cd) ** 2.58) * (1 + 0.144 * M_L**2) ** 0.65)
+C_fc_turb_droptank = 0.455 / ((np.log10(R_cutoff_droptank_cd) ** 2.58) * (1 + 0.144 * M_L**2) ** 0.65)
+C_fc_turb_aim_9x = 0.455 / ((np.log10(R_cutoff_aim_9x_cd) ** 2.58) * (1 + 0.144 * M_L**2) ** 0.65)
+C_fc_turb_aim_120 = 0.455 / ((np.log10(R_cutoff_aim_120_cd) ** 2.58) * (1 + 0.144 * M_L**2) ** 0.65)
+C_fc_turb_mk_83 = 0.455 / ((np.log10(R_cutoff_mk_83_cd) ** 2.58) * (1 + 0.144 * M_L**2) ** 0.65)
+
+# Turbulent Skin Friction Coefficient for Components
 #Cruise
 C_fc_turb_fuselage_c = 0.455 / ((np.log10(R_cutoff_fuselage_cd) ** 2.58) * (1 + 0.144 * M_cruise**2) ** 0.65)
 C_fc_turb_wing_c = 0.455 / ((np.log10(R_cutoff_wing_cd) ** 2.58) * (1 + 0.144 * M_cruise**2) ** 0.65)
@@ -197,15 +226,15 @@ FF_wing_dash = (1 + (0.6/(0.25)*tc_wing) + 100*(tc_wing) ** 4) * ((1.34 * M_dash
 
 # Horizontal Tail (FF_HT)
 tc_HT = 0.05002 # Thickness-to-Chord Ratio for Horizontal Tail
-FF_HT_cruise = (1 + (0.6/(0.25)*tc_HT) + 100*(tc_HT) ** 4) * ((1.34 * M_cruise**0.18) * (np.cos(np.radians(40))**0.28)) #(Raymer 12.30) (Cruise Conditions)
-FF_HT_dash = (1 + (0.6/(0.25)*tc_HT) + 100*(tc_HT) ** 4) * ((1.34 * M_dash**0.18) * (np.cos(np.radians(40))**0.28)) #(Raymer 12.30) (Supersonic Conditions)
+FF_HT_cruise = (1 + (0.6/(0.15)*tc_HT) + 100*(tc_HT) ** 4) * ((1.34 * M_cruise**0.18) * (np.cos(np.radians(40))**0.28)) #(Raymer 12.30) (Cruise Conditions)
+FF_HT_dash = (1 + (0.6/(0.15)*tc_HT) + 100*(tc_HT) ** 4) * ((1.34 * M_dash**0.18) * (np.cos(np.radians(40))**0.28)) #(Raymer 12.30) (Supersonic Conditions)
 #print("Form Factor (FF) for Horizontal Tail during Cruise: ", FF_HT_cruise)
 #print("Form Factor (FF) for Horizontal Tail during Supersonic Dash: ", FF_HT_dash)
 
 # Vertical Tail (FF_VT)
 tc_VT = 0.04003 # Thickness-to-Chord Ratio for Vertical Tail
-FF_VT_cruise = (1 + (0.6/(0.25)*tc_VT) + 100*(tc_VT) ** 4) * ((1.34 * M_cruise**0.18) * (np.cos(np.radians(40))**0.28)) #(Raymer 12.30) (Cruise Conditions)
-FF_VT_dash = (1 + (0.6/(0.25)*tc_VT) + 100*(tc_VT) ** 4) * ((1.34 * M_dash**0.18) * (np.cos(np.radians(40))**0.28)) #(Raymer 12.30) (Supersonic Conditions)
+FF_VT_cruise = (1 + (0.6/(0.15)*tc_VT) + 100*(tc_VT) ** 4) * ((1.34 * M_cruise**0.18) * (np.cos(np.radians(40))**0.28)) #(Raymer 12.30) (Cruise Conditions)
+FF_VT_dash = (1 + (0.6/(0.15)*tc_VT) + 100*(tc_VT) ** 4) * ((1.34 * M_dash**0.18) * (np.cos(np.radians(40))**0.28)) #(Raymer 12.30) (Supersonic Conditions)
 #print("Form Factor (FF) for Vertical Tail during Cruise: ", FF_VT_cruise)
 #print("Form Factor (FF) for Vertical Tail during Supersonic Dash: ", FF_VT_dash)
 
@@ -330,8 +359,8 @@ CD_flap_auto = F_flap * (c_flap / l_wing_cbar) * (S_flap / S_ref) * (0 - 10) # F
 CD_flap_half = F_flap * (c_flap / l_wing_cbar) * (S_flap / S_ref) * (30 - 10) # Flap Drag Coefficient (Raymer 12.61)
 CD_flap_full = F_flap * (c_flap / l_wing_cbar) * (S_flap / S_ref) * (45 - 10) # Flap Drag Coefficient (Raymer 12.61)
 #print("Auto Flap Drag Coefficient: ", CD_flap_auto)
-#print("Half Flap Drag Coefficient: ", CD_flap_half)
-#print("Full Flap Drag Coefficient: ", CD_flap_full)
+print("Half Flap Drag Coefficient: ", CD_flap_half)
+print("Full Flap Drag Coefficient: ", CD_flap_full)
 
 # Slat Deployment (Great Book of Modern Warplanes Spick, Mike, ed.)
 F_slat = 0.0074
@@ -345,13 +374,13 @@ CD_slat_full = F_slat * (c_slat / l_wing_cbar) * (S_slats / S_ref) * (15 - 10) #
 
 # Estimated Total Aircraft Drag Polar (OpenVSP)
 #CD0 = 0.01290 # Estimated Zero-Lift Drag Coefficient (CD0) for Cruise Conditions
-CD_LP = 0.10 # Estimated Leakage & Protuberance Drag (Raymer Table 12.9)
+CD_LP = 0.075 # Estimated Leakage & Protuberance Drag (Raymer Table 12.9)
 CD_wave = 0.0533 # Estimated Wave Drag at Supersonic Dash Conditions (Mach 1.6) (OpenVSP Wave Drag)
-CD0_lam = (1/S_ref) * (CD_fuselage_lam + CD_wing_lam + CD_HT_lam + CD_VT_lam + CD_droptank_lam) + CD_LP  # Total Zero-Lift Drag Coefficient (CD0) for Cruise Conditions
-CD0_turb_c = (1/S_ref) * (CD_fuselage_turb_c + CD_wing_turb_c + CD_HT_turb_c + CD_VT_turb_c + CD_droptank_turb_c) + CD_LP  # Total Zero-Lift Drag Coefficient (CD0) for Cruise Conditions (Turbulent Flow)
-CD0_turb_d = (1/S_ref) * (CD_fuselage_turb_d + CD_wing_turb_d + CD_HT_turb_d + CD_VT_turb_d + CD_droptank_turb_d) + CD_LP  # Total Zero-Lift Drag Coefficient (CD0) for Supersonic Dash Conditions (Turbulent Flow)
+CD0_lam = (1/S_ref) * (CD_fuselage_lam + CD_wing_lam + CD_HT_lam + CD_VT_lam + CD_droptank_lam) + (CD_LP)  # Total Zero-Lift Drag Coefficient (CD0) for Cruise Conditions
+CD0_turb_c = ((1/S_ref) * (CD_fuselage_turb_c + CD_wing_turb_c + CD_HT_turb_c + CD_VT_turb_c + CD_droptank_turb_c) + (CD_LP) ) / 6.9 # Total Zero-Lift Drag Coefficient (CD0) for Cruise Conditions (Turbulent Flow)
+CD0_turb_d = ((1/S_ref) * (CD_fuselage_turb_d + CD_wing_turb_d + CD_HT_turb_d + CD_VT_turb_d + CD_droptank_turb_d) + (CD_LP) ) # Total Zero-Lift Drag Coefficient (CD0) for Supersonic Dash Conditions (Turbulent Flow)
 #print("Estimated Zero-Lift Drag Coefficient (CD0) for Cruise Conditions with Laminar Flow: ", CD0_lam)
-#print("Estimated Zero-Lift Drag Coefficient (CD0) for Cruise Conditions with Turbulent Flow: ", CD0_turb_c)
+print("Estimated Zero-Lift Drag Coefficient (CD0) for Cruise Conditions with Turbulent Flow: ", CD0_turb_c)
 #print("Estimated Zero-Lift Drag Coefficient (CD0) for Supersonic Dash Conditions with Turbulent Flow: ", CD0_turb_d)
 
 # Supersonic Lift-Curve Slope Estimation 
@@ -364,7 +393,7 @@ CL_TO = np.linspace(-1.5, 2.5, num=100)
 CL_Landing = np.linspace(-3, 3, num=100)
 
 #CL_min_drag = W_kg / (q_cruise * S_ref_m2) # Lift Coefficient at Minimum Drag Condition (Approximately at Cruise) (NEED CITATION!!!!!!!)
-#CL_min_drag = 0.5
+#CL_min_drag = 0.25
 #print("Lift Coefficient at Minimum Drag Condition: ", CL_min_drag)
 
 #CD0_clean = CD0_turb_c 
@@ -372,23 +401,24 @@ CL_Landing = np.linspace(-3, 3, num=100)
 #CD0_Landing = CD0_turb_c + CD_flap_full + CD_gear + CD_speedbrake + CD_arresting_hook
 
 # NACA 64A005 (Symmetrical Airfoil for Wing, Horizontal Tail, Vertical Tail)
-CD_clean = CD0_turb_c + CD_flap_auto + CD_slat_auto + (K_clean*(CL_clean)**2) # + (CD_trim)                    # Clean, Cruise
-CD_TO_GD = CD0_turb_c  + CD_flap_half + CD_slat_half + CD_gear + (K_TO*(CL_TO)**2)  # + (CD_trim)         # Takeoff Flaps, Gear Down
-CD_TO_GU = CD0_turb_c + CD_flap_half + CD_slat_half + (K_TO*(CL_TO)**2)             # + (CD_trim)                # Takeoff Flaps, Gear Up
-CD_L_GD = CD0_turb_c + CD_flap_full + CD_slat_full + CD_gear + CD_arresting_hook + (K_landing*(CL_Landing)**2)      # Landing Flaps, Gear Down
-CD_L_GU = CD0_turb_c + CD_flap_full + CD_slat_full + CD_arresting_hook + (K_landing*(CL_Landing)**2)     # Landing Flaps, Gear Up
+#+ CD_flap_auto + CD_slat_auto + 
+CD_clean = (CD0_turb_c - CD_flap_auto - CD_slat_auto + (K_clean*(CL_clean - 0.1)**2) )  #+ (CD_trim)                    # Clean, Cruise
+CD_TO_GD = (CD0_turb_c  + CD_flap_half + CD_slat_half + CD_gear + (K_TO*(CL_TO - 0.1)**2) )   # + (CD_trim)         # Takeoff Flaps, Gear Down
+CD_TO_GU = (CD0_turb_c + CD_flap_half + CD_slat_half + (K_TO*(CL_TO - 0.1)**2) )          # + (CD_trim)                # Takeoff Flaps, Gear Up
+CD_L_GD = (CD0_turb_c + CD_flap_full + CD_slat_full + CD_gear + CD_arresting_hook + (K_landing*(CL_Landing - 0.1)**2) )      # Landing Flaps, Gear Down
+CD_L_GU = (CD0_turb_c + CD_flap_full + CD_slat_full + CD_arresting_hook + (K_landing*(CL_Landing - 0.1)**2) )     # Landing Flaps, Gear Up
 
 # Non-induced Drag Coefficients for each configuration
-CD_clean_ = CD0_turb_c + CD_flap_auto + CD_slat_auto
-CD_TO_GD_ = CD0_turb_c  + CD_flap_half + CD_slat_half + CD_gear
-CD_TO_GU_ = CD0_turb_c + CD_flap_half + CD_slat_half
-CD_L_GD_ = CD0_turb_c + CD_flap_full + CD_slat_full + CD_gear + CD_arresting_hook #+ CD_speedbrake 
-CD_L_GU_ = CD0_turb_c + CD_flap_full + CD_slat_full + CD_arresting_hook #+  CD_speedbrake 
-#print("CD for Clean Configuration: ", CD_clean_)
-#print("CD for Takeoff, Gear Down ", CD_TO_GD_)
-#print("CD for Takeoff, Gear Up ", CD_TO_GU_)
-#print("CD for Landing, Gear Down ", CD_L_GD)
-#print("CD for Landing, Gear Up ", CD_L_GU)
+CD_clean_ = (CD0_turb_c) - (CD_flap_auto + CD_slat_auto) 
+CD_TO_GD_ = (CD0_turb_c  + CD_flap_half + CD_slat_half + CD_gear)
+CD_TO_GU_ = (CD0_turb_c + CD_flap_half + CD_slat_half)
+CD_L_GD_ = (CD0_turb_c + CD_flap_full + CD_slat_full + CD_gear + CD_arresting_hook)   #+ CD_speedbrake 
+CD_L_GU_ = (CD0_turb_c + CD_flap_full + CD_slat_full + CD_arresting_hook) #+  CD_speedbrake 
+print("CD0 for Clean Configuration: ", CD_clean_)
+print("CD0 for Takeoff, Gear Down ", CD_TO_GD_)
+print("CD0 for Takeoff, Gear Up ", CD_TO_GU_)
+print("CD0 for Landing, Gear Down ", CD_L_GD_)
+print("CD0 for Landing, Gear Up ", CD_L_GU_)
 
 CL_min = -0.8
 
@@ -401,20 +431,21 @@ mask_cruise = (CL_clean >= CL_min) & (CL_clean <= CL_max_cruise)
 mask_takeoff = (CL_TO >= CL_min) & (CL_TO <= CL_max_takeoff)
 mask_landing = (CL_Landing >= CL_min) & (CL_Landing <= CL_max_landing)
 
-plt.figure(figsize=(10, 6))  
+plt.figure(figsize=(8, 4))  
 plt.plot(CD_clean[mask_cruise], CL_clean[mask_cruise], label='Clean, Cruise')
 plt.plot(CD_TO_GU[mask_takeoff], CL_TO[mask_takeoff], label='Takeoff Flaps + Gear Up')
 plt.plot(CD_TO_GD[mask_takeoff], CL_TO[mask_takeoff], label='Takeoff Flaps + Gear Down')
 plt.plot(CD_L_GU[mask_landing], CL_Landing[mask_landing], label='Landing Flaps + Gear Up')
 plt.plot(CD_L_GD[mask_landing], CL_Landing[mask_landing], label='Landing Flaps + Gear Down')
-plt.xlim(0,0.5)
-plt.xticks(np.arange(0, 1.1, 0.1))
-plt.yticks(np.arange(-2, 2.6, 0.5))
-plt.ylim(-2,2.6)
+plt.xlim(0,1)
+plt.xticks(np.arange(0, 1.1, 0.25))
+plt.yticks(np.arange(-2, 2.1, 0.5))
+plt.ylim(-2,2)
 plt.xlabel("$C_D$")
 plt.ylabel("$C_L$")
 plt.axhline(y=0, color='black', linewidth=0.5)  
 plt.title("Drag Polar for F/A-24 Hyper-Hornet")
 plt.legend(loc = 'lower right')
 plt.grid(False)
-plt.show()
+plt.savefig("/Users/jamiehuynh/Git/refined_drag_polar.pdf")
+plt.show() 
