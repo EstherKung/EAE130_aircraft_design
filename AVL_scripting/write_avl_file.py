@@ -19,7 +19,7 @@ class AVL_Config:
     CG_fuse: list    # [X Y Z] pos (relative to nose) of fuselage; ft
     W_fsurf: float  # Mass of wing, wing tanks, empennage; slugs
     CG_fsurf: list  # [X Y Z] pos (relative to nose) of flying surfaces, ft
-    W_fuse: float = 803.17   # Mass of fuselage; slugs
+    W_fuse: float    # Mass of fuselage; slugs
 
     # Flight Condition
     Mach: float = 0.85
@@ -279,17 +279,18 @@ if __name__ == "__main__":
         vstab_foils= [r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A004.dat"],
 
         W_fsurf = 271.009,
+        W_fuse=  809.397,
         CG_fuse = [26.883, 0, -0.189],
-        CG_fsurf = [29.516, 2.4069, 0.17672]
+        CG_fsurf = [30.516, 0, -0.078]
     )
 
     '''avl_file = MakeAVL_File(config = config, global_x_transl=16)
     avl_file.Write_AVL_File()'''
 
 
-    hstab = Hstab(name='Hstab', g_xtransl=16.0, config=config)
-    vstab = Vstab(name='Vstab', g_xtransl=16.0, config=config)
-    wing = Wing(name='Wing', g_xtransl=16.0, config=config)
+    hstab = Hstab(name='Hstab', g_xtransl=17.0, config=config)
+    vstab = Vstab(name='Vstab', g_xtransl=17.0, config=config)
+    wing = Wing(name='Wing', g_xtransl=17.0, config=config)
 
     avlfile = Write_AVL_File(config=config, surfaces=[hstab, vstab, wing])
     avlfile.Write_File()
