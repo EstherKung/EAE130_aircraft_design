@@ -82,7 +82,7 @@ Hstab_parm = {
 
 Hstab_geom = {
     "YLoc_HT": 2.3,     # Horizontal Offset, ft
-    "ZLoc_HT": -0.1  # Vertical Offset, ft
+    "ZLoc_HT": -0.613  # Vertical Offset, ft
 }
 
 Hstab_control = [-1, 0, 0] # for AVL parsing; if 0, regular chord element (Root Chord, Tip Chord)
