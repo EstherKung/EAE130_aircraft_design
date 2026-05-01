@@ -525,8 +525,8 @@ class VSP_Interface:
         # Number wake nodes
         vsp.SetParmVal(aero_id, 'RootWakeNodes', 'VSPAERO', 20)'''
 
-        # Relaxation
-        vsp.SetParmVal(aero_id, 'WakeRelax', 'VSPAERO', 0.5)
+        '''# Relaxation
+        vsp.SetParmVal(aero_id, 'WakeRelax', 'VSPAERO', 0.5)'''
         
         # Init. CG Calc
         vsp.SetParmVal(aero_id, "NumMassSlice", "VSPAERO", 100.0)
@@ -754,15 +754,15 @@ class Weigh_Plane:
 ########################
 
 if __name__ == "__main__":
-    config = Config(vsp_filename='F24HH_2',
+    config = Config(vsp_filename='F24HH_3',
                     geom_def_path=r'C:\Users\14153\Desktop\Skewl\EAE 130\Python\EAE130_aircraft_design\Flying_Surfaces\airplane_geom2.json',
-                    fuse_file_path=r"C:\Users\14153\Desktop\Skewl\EAE 130\Python\EAE130_aircraft_design\VSP_Files\3_SIMPLE_F24HH_FUSE.vsp3",
+                    fuse_file_path=r"C:\Users\14153\Desktop\Skewl\EAE 130\Python\EAE130_aircraft_design\VSP_Files\4_SIMPLE_F24HH_FUSE.vsp3",
                     wing_foils=[r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A006_TEST.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A005.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A004_TEST.dat"],
                     tail_foils=[r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A004.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A005.dat"])
     
     # Initialize and Model the Aircraft in OpenVSP, run CompGeom to get surfaces areas and volumes
-    vspfile = VSP_Interface(config=config, global_x_transl=16)
-    vspfile.BuildPlane(include_fuse=False)
+    vspfile = VSP_Interface(config=config, global_x_transl=17)
+    vspfile.BuildPlane(include_fuse=True)
     vspfile.Run_CompGeom()
 
     # Calculate Masses of surfaces based on CompGeom results and 
@@ -773,23 +773,27 @@ if __name__ == "__main__":
     vspfile.Assign_Mass(densities=desnities)
 
     # Perform VSP analyses; MassProps, VSPAERO, etc. 
-    xcg, ycg, zcg, AC_mass_slug = vspfile.Run_MassProp(n_slice=200)
+    xcg, ycg, zcg, AC_mass_slug = vspfile.Run_MassProp(n_slice=150)
     #vspfile._initialize_NP_VSPAERO(xcg=xcg)
     
-    SM, xNP = vspfile.Run_VSPAERO_NP(xcg=xcg)
+    #SM, xNP = vspfile.Run_VSPAERO_NP(xcg=xcg)
 
     # Calculate CG Limits
-    forward_xCG, aft_xCG = mass.CG_Limits(lower_SM=-0.15, upper_SM=0.08, SM=SM, xNP=xNP)
+    #forward_xCG, aft_xCG = mass.CG_Limits(lower_SM=-0.15, upper_SM=0.08, SM=SM, xNP=xNP)
     
     # Dictionary to store weights information
-    weights_CG = {
+    '''weights_CG = {
         'xCG [ft]': xcg,
         'yCG [ft]': ycg,
         'zCG [ft]': zcg,
-        'Forward CG Limit [ft]': forward_xCG,
-        'Aft CG Limit [ft]': aft_xCG,
+        #"Static Margin": SM,
+        #'Forward CG Limit [ft]': forward_xCG,
+        #'Aft CG Limit [ft]': aft_xCG,
         'MTOW [slug]': AC_mass_slug,
     }
 
     pprint.pprint(weights_CG)
-    pprint.pprint(comp_mass)
+    pprint.pprint(comp_mass)'''
+
+    ### Add fn. to compute Swet/Sref
+    ### Add fn. to compute CD0, CD_wave
