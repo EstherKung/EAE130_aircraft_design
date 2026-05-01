@@ -1,36 +1,13 @@
-# %%
 import numpy as np
 
-# Basic performance inputs
-performance = {
-    "M_cruise": 0.85,
-    "h_cruise": 35000,
-    "a_cruise": 972.6,
-    "R_cruise": 700,
-    "E_loiter": 20,
-    "M_dash": 0.85,
-    "a_dash": 1116,
-    "R_dash": 100,
-    "C_cruise": 0.8,
-    "C_dash": 1.0,
-    "C_loiter": 0.7,
-    "C_after": 1.8,
-    "C_climb": 0.9,
-    "C_taxi": 0.3,
-    "C_to": 1.0,
-    "E_combat": 2,
-    "AR": 2.85,
+# Performance Parameters
+p = {
+    "AR": 3.5,        
     "Swet_Sref": 4.3,
-    "K_LD": 14,
-    "CD0": 0.015,
-    "e_oswald": 0.85,
-    "WS": 70,
-    "TW": 1.0,
-    "n_climb": 10,
-    "n_cruise": 10,
+    "Sref": 465,       
+    "MTOW": 41508.866313,
 }
 
-# Mission sequences
 mission_sequence = {
     'strike': [1, 2, 3, 4, 5, 2, 3, 4, 7, 8],
     'strike_mid_mission': [1, 2, 3, 4, 5],
@@ -38,145 +15,134 @@ mission_sequence = {
     'combat': [1, 2, 3, 6, 3, 4, 7, 8],
     'combat_mid_mission': [1, 2, 3],
     'combat_end_mission': [1, 2, 3, 6, 3, 4, 7],
+    'off_mission': [1, 2, 4, 2, 4, 2, 7, 4, 8]
 }
 
-empty_statistic = {
-    "A": 2.34,
-    "C": -0.13,
-    "MTOW_guess": 40000
-}
-
-# %%
 def isa_atmosphere(h_ft):
-    T0, rho0 = 518.67, 0.002377
-    L, h_tp = 0.003566, 36089.0
-    T_tp = 389.97
-    R, g, gam = 1716.49, 32.174, 1.4
-
+    T0, rho_sl, L, h_tp, T_tp, R, g, gam = 518.67, 0.002377, 0.003566, 36089.0, 389.97, 1716.49, 32.174, 1.4
     if h_ft <= h_tp:
         T = T0 - L * h_ft
         sigma = (T / T0) ** 4.2561
     else:
-        sigma_tp = (T_tp / T0) ** 4.2561
         T = T_tp
-        sigma = sigma_tp * np.exp(-g / (R * T_tp) * (h_ft - h_tp))
+        sigma = 0.29707 * np.exp(-g / (R * T_tp) * (h_ft - h_tp))
+    theta = T / T0
+    return sigma * rho_sl, np.sqrt(gam * R * T), sigma, theta
 
-    rho = sigma * rho0
-    a = np.sqrt(gam * R * T)
-    return rho, a
-
-# %%
-def fuel_frac(mission_sequence, A, C, MTOW_guess):
-
-    p = performance
-
-    k = 1.0 / (np.pi * p["AR"] * p["e_oswald"])
-    Sref = MTOW_guess / p["WS"]
+def fuel_frac_refined(MTOW_initial, mission_list, AR = 3.5,  S_ref = 465, Swet_Sref =4.3, M_cruise = 0.85,
+                      reserve=False, 
+                      params={"h_cruise": 35000, "a_cruise": 972.6, "R_cruise": 700,
+                                        "h_loiter": 30000, "M_loiter": 0.6, "a_loiter": 994.8, "E_loiter": 20,
+                                        "M_dash": 0.85, "a_dash": 1116, "R_dash": 100, "C_cruise": 0.8, "C_dash": 1.0,
+                                        "C_loiter": 0.7, "C_after": 1.8, "C_climb": 0.9, "C_taxi": 0.3, "C_to": 1.0, 
+                                        "E_combat": 2, "T_sl_max": 29160, "T_sl_nom": 17800, "e_oswald": 0.825,
+                                        "n_steps": 100, "K_LD": 14, "CD0": 0.01355,}):
+    
+    k = 1.0 / (np.pi * AR * params["e_oswald"])
     g = 32.174
+    
+    # 1. Warm-up and Taxi
+    ff_taxi = (1 - (15/60)*(params["C_taxi"]*(0.05 * params["T_sl_max"] / MTOW_initial)))
+    W_exec = MTOW_initial * ff_taxi
+    # 2. Takeoff
+    ff_takeoff = 1 - (1.0 * (1/60) * (params["T_sl_max"] / W_exec))
+    W_exec *= ff_takeoff
+    
+    x_climb_credit = 0.0
 
-    V_cruise = p["M_cruise"] * p["a_cruise"]
-    V_dash = p["M_dash"] * p["a_dash"]
+    def compute_climb(W_start):
+        h_steps = np.linspace(0, params["h_cruise"], params["n_steps"] + 1)
+        W = W_start
+        dist_ft = 0.0
+        for i in range(len(h_steps)-1):
+            h1, h2 = h_steps[i], h_steps[i+1]
+            rho1, _, sigma1, _ = isa_atmosphere(h1)
+            rho2, _, sigma2, _ = isa_atmosphere(h2)
+            
+            # Velocities at start/end of step to calculate Delta Energy Height
+            T1, T2 = params["T_sl_max"] * (sigma1**0.9), params["T_sl_max"] * (sigma2**0.9)
+            V1 = np.sqrt(((W/S_ref)/(3*rho1*params["CD0"])) * ((T1/W) + np.sqrt(max((T1/W)**2 + 12*params["CD0"]*k, 0))))
+            V2 = np.sqrt(((W/S_ref)/(3*rho2*params["CD0"])) * ((T2/W) + np.sqrt(max((T2/W)**2 + 12*params["CD0"]*k, 0))))
+            
+            # dhe = delta(h + V^2/2g)
+            dhe = (h2 - h1) + (V2**2 - V1**2) / (2 * g)
+            
+            # Mid-point performance
+            h_mid = (h1 + h2) / 2
+            rho_m, _, sigma_m, theta_m = isa_atmosphere(h_mid)
+            V_m = (V1 + V2) / 2
+            CL = np.sqrt((params["CD0"]) / (3*k))
+            CD = params["CD0"] + k * CL**2
+            SFC = params["C_climb"]
+            Ps = V_m * ((params["T_sl_max"] * sigma_m**0.9 / W) - (CD/CL)) 
+            
+            W *= np.exp(-((SFC/3600) * dhe) / Ps)
+            dist_ft += (V_m / Ps) * dhe
+        return W / W_start, dist_ft / 6076.12
 
-    rho_sl, _ = isa_atmosphere(0.0)
-    rho_cruise, _ = isa_atmosphere(p["h_cruise"])
+    def compute_cruise_analytical(W_start, R_nm, x_credit):
+        R_actual = max(R_nm - x_credit, 0) * 6076.12
+        dR = R_actual / params["n_steps"]
+        V = M_cruise * params["a_cruise"]
+        rho, _, _, theta = isa_atmosphere(params["h_cruise"])
+        SFC_s = (params["C_cruise"]) / 3600
+        W = W_start
+        for _ in range(params["n_steps"]):
+            CL = (2 * W) / (rho * V**2 * S_ref) # Current weight
+            CD = params["CD0"] + (k * CL**2)
+            LD = CL / CD
+            W *= np.exp(-(dR * SFC_s) / (V * LD)) # Discrete exponential
+        return W / W_start
 
-    LD_max = p["K_LD"] * np.sqrt(p["AR"] / p["Swet_Sref"])
+    def compute_loiter_iterative(W_start, E_min):
+        dt = (E_min * 60) / params["n_steps"]
+        rho, _, _, theta = isa_atmosphere(params["h_loiter"])
+        SFC_s = (params["C_loiter"] / 3600)
+        W = W_start
+        for _ in range(params["n_steps"]):
+            CL = np.sqrt(params["CD0"] / k) 
+            CD = params["CD0"] + k * CL**2
+            LD = CL / CD
+            W *= np.exp(-(SFC_s * dt) / LD)
+        return W / W_start 
 
-    # takeoff (taxi + TO burn)
-    ff_takeoff = (1 - (15*60)*(p["C_taxi"]/3600)*(0.05*p["TW"])) * \
-                 (1 - (60)*(p["C_to"]/3600)*(p["TW"]))
+    for m in mission_list:
+        if m == 1: continue 
+        elif m == 2: # Climb
+            ratio, x_climb_credit = compute_climb(W_exec)
+            W_exec *= ratio
+        elif m == 3: # Cruise
+            W_exec *= compute_cruise_analytical(W_exec, params["R_cruise"], x_climb_credit)
+            x_climb_credit = 0.0 
+        elif m == 4: # Descent
+            W_exec *= 0.99 
+        elif m == 5: # Dash
+            V_d = params["M_dash"] * params["a_dash"]
+            LD_d = 0.7 * (params["K_LD"] * np.sqrt(AR /Swet_Sref))
+            W_exec *= np.exp(-(params["R_dash"]*6076.12*(params["C_dash"]/3600))/(V_d * LD_d))
+        elif m == 6: # Combat
+            LD_c = 0.2 * (params["K_LD"] * np.sqrt(AR / Swet_Sref))
+            W_exec *= np.exp(-(params["E_combat"]*60*(params["C_after"]/3600))/LD_c)
+        elif m == 7: # Loiter
+            W_exec *= compute_loiter_iterative(W_exec, params["E_loiter"])
+        elif m == 8: # Landing/Taxi
+            W_exec *= 0.995 
+    if reserve:
+        return 1.06 * (1-(W_exec/MTOW_initial))
+    else:
+        return (1 - (W_exec / MTOW_initial))
 
-    def compute_climb(W_start_frac):
-        h_steps = np.linspace(0, p["h_cruise"], p["n_climb"] + 1)
-        W_frac, x_total = 1.0, 0.0
+# print(f"{'Mission Profile':<25} | {'Fuel Fraction'}")
+# print("-" * 55)
+# for name, sequence in mission_sequence.items():
+    # res = fuel_frac_refined(sequence, p["MTOW"])
+    # print(f"{name:<25} | {res:.4f}")
 
-        for i in range(len(h_steps) - 1):
-            h_lo, h_hi = h_steps[i], h_steps[i+1]
-            h_mid = 0.5*(h_lo + h_hi)
-            dh = h_hi - h_lo
-
-            W_curr = MTOW_guess * W_start_frac * W_frac
-            rho_mid, _ = isa_atmosphere(h_mid)
-
-            TW_alt = p["TW"] * (rho_mid / rho_sl)
-
-            disc = TW_alt**2 + 12*p["CD0"]*k
-            V_sq = (W_curr/Sref)/(3*rho_mid*p["CD0"]) * (TW_alt + np.sqrt(max(disc,0)))
-            V = np.sqrt(max(V_sq, 1.0))
-
-            CL = 2*W_curr/(rho_mid*V**2*Sref)
-            CD = p["CD0"] + k*CL**2
-            D = 0.5*rho_mid*V**2*Sref*CD
-
-            DoverT = D/(TW_alt*W_curr)
-            one_minus = max(1 - DoverT, 1e-3)
-
-            dhe = dh  # simplified energy height change
-            ff = np.exp(-(p["C_climb"]/3600)*dhe/(V*one_minus))
-            W_frac *= ff
-
-            excess = TW_alt - D/W_curr
-            if excess > 1e-6:
-                x_total += dh / excess
-
-        return W_frac, x_total
-
-    def compute_cruise(W_start_frac, R_nm, x_credit=0.0):
-        R_ft = max(R_nm*6076.12 - x_credit, 0.0)
-        dR = R_ft / p["n_cruise"]
-        C_s = p["C_cruise"]/3600
-        W_frac = 1.0
-
-        for _ in range(p["n_cruise"]):
-            W_curr = MTOW_guess * W_start_frac * W_frac
-            CL = 2*W_curr/(rho_cruise*V_cruise**2*Sref)
-            CD = p["CD0"] + k*CL**2
-            LD = CL/CD
-            W_frac *= np.exp(-dR*C_s/(V_cruise*LD))
-
-        return W_frac
-
-    # other phases
-    ff_dash = np.exp(-(p["R_dash"]*6076.12*p["C_dash"]/3600)/(V_dash*(0.7*LD_max)))
-    ff_combat = np.exp(-(p["E_combat"]*60*p["C_after"]/3600)/(0.2*LD_max))
-    ff_loiter = np.exp(-(p["E_loiter"]*60*p["C_loiter"]/3600)/(LD_max))
-
-    ff_descent = 0.99
-    ff_land = 0.995
-
-    CFF = 1.0
-    x_credit = 0.0
-
-    for m in mission_sequence:
-        if m == 1:
-            CFF *= ff_takeoff
-        elif m == 2:
-            ff, x = compute_climb(CFF)
-            CFF *= ff
-            x_credit = x
-        elif m == 3:
-            CFF *= compute_cruise(CFF, p["R_cruise"], x_credit)
-            x_credit = 0.0
-        elif m == 4:
-            CFF *= ff_descent
-        elif m == 5:
-            CFF *= ff_dash
-        elif m == 6:
-            CFF *= ff_combat
-        elif m == 7:
-            CFF *= ff_loiter
-        elif m == 8:
-            CFF *= ff_land
-
-    return 1.06 * (1 - CFF)
-
-# %%
 fuel_fraction = {
-    k: fuel_frac(v, **empty_statistic)
-    for k, v in mission_sequence.items()
+    'strike': fuel_frac_refined(mission_list=mission_sequence['strike'],  MTOW_initial=p["MTOW"]),
+    'strike_mid_mission': fuel_frac_refined(mission_list=mission_sequence['strike_mid_mission'], MTOW_initial=p["MTOW"], reserve=False),
+    'combat': fuel_frac_refined(mission_list=mission_sequence['combat'], MTOW_initial=p["MTOW"]),
+    'combat_mid_mission': fuel_frac_refined(mission_list=mission_sequence['combat_mid_mission'], MTOW_initial=p["MTOW"], reserve=False),
+    'strike_end_mission': fuel_frac_refined(mission_list=mission_sequence['strike_end_mission'], MTOW_initial=p["MTOW"], reserve=False),
+    'combat_end_mission': fuel_frac_refined(mission_list=mission_sequence['combat_end_mission'], MTOW_initial=p["MTOW"], reserve=False),
 }
-
-# %%
-print("Fuel Fractions:")
-for k, v in fuel_fraction.items():
-    print(f"{k:25s}: {v:.4f}")
