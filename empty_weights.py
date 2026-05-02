@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def weights(consts, TOGW, W_en=None, T_0=29160):
+def weights(consts, TOGW, W_en=None, T_0=29160, W_dg=None):
 
     #Import Constants
     weight_const_df = pd.read_csv(consts)
@@ -11,7 +11,11 @@ def weights(consts, TOGW, W_en=None, T_0=29160):
 
     #Assign Variables
     # W_dg = coeffs.get('W_dg', 0)
-    W_dg = TOGW * 0.85
+
+    if W_dg is not None:
+        W_dg = W_dg
+    else:
+        W_dg = TOGW * 0.85
     N_z = coeffs.get('N_z', 0)
     L = coeffs.get("L", 0)
     D = coeffs.get("D", 0)

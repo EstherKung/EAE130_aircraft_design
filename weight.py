@@ -35,7 +35,7 @@ W_fixed_payload = {
     'end': fixed_payload(**payload_mass, **payload_config['strike'], store=0.5)
 }
 # %%
-def empty_weight(S: dict, T_0, TOGW, 
+def empty_weight(S: dict, T_0, TOGW, W_fuel, W_empty, 
 weights = partial(weights, consts="w_params.csv"), consts={}):
 
     Engine_parts = {
@@ -48,7 +48,7 @@ weights = partial(weights, consts="w_params.csv"), consts={}):
     W_pneumatics = 9.33 * (Engine_parts['dry']/1000)**1.078
     W_engine = sum(Engine_parts.values()) + W_pneumatics
 
-    W_dg = TOGW * 0.85
+    W_dg = W_empty + W_fuel*0.5
 
     N_z = 10.5
     L_t = 15.5
@@ -73,7 +73,7 @@ weights = partial(weights, consts="w_params.csv"), consts={}):
         'vtail':  0.452 * (1 + 0)**(0.5) * (W_dg * N_z)**(0.488) * S['vtail']**(0.718) * M**(0.341) \
             * L_t**(-1) * (1 + S_r2 / S['vtail'])**(0.348) * A_VT**(0.223) * (1 + lam_VT)**(0.25) * (np.cos(Lam_25mac))**(-0.323),
         # 'fuse': 4.8 * S['fuse_wet'], 
-        'else': weights(TOGW=TOGW, W_en=W_engine, T_0=T_0),
+        'else': weights(TOGW=TOGW, W_en=W_engine, T_0=T_0, W_dg=W_dg),
         # 'landing_gear': 0.045 * TOGW,
         # 'installed_engine': 1.3 * W_engine,
         # 'misc': 0.17 * TOGW
@@ -96,11 +96,11 @@ def weight_convergence(S, AR=3.5, M_cruise=0.85, Swet_Sref=4.3,
     delta = np.inf 
     i = 0
     converge_history = []
-
+    W_empty = 0.6*W_guess
     while delta > tol and i < iter:
         W_fuel = W_guess * fuel_frac_refined(W_guess, mission_list=mission_sequence[mission],
                                              AR=AR,  S_ref = S['wing'], Swet_Sref = Swet_Sref, M_cruise = M_cruise)
-        W_empty = empty_weight(S, T_0, TOGW=W_guess)
+        W_empty = empty_weight(S, T_0, TOGW=W_guess, W_empty=W_empty, W_fuel=W_fuel)
         W_total = W_fixed_payload[mission] + W_fuel + W_empty
 
         delta = abs(W_total - W_guess) / max(abs(W_total), 1e-9)
