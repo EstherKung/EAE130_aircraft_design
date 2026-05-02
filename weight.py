@@ -36,7 +36,7 @@ W_fixed_payload = {
 }
 # %%
 def empty_weight(S: dict, T_0, TOGW, W_fuel, W_empty, 
-weights = partial(weights, consts="w_params.csv"), consts={}):
+weights = partial(weights, consts="w_params.csv"), consts={}, fuse=False):
 
     Engine_parts = {
         'dry': 0.521 * T_0**0.9,
@@ -80,7 +80,10 @@ weights = partial(weights, consts="w_params.csv"), consts={}):
     }
     
     W_empty = sum(Weight.values())
-    return W_empty
+    if fuse:
+        return W_empty, Weight['else']
+    else:
+        return W_empty
 
 def weight_fraction(TOGW, fuel_fraction=0):
     used_fuel_weight = TOGW * fuel_fraction # how much fuel has been used
@@ -100,7 +103,7 @@ def weight_convergence(S, AR=3.5, M_cruise=0.85, Swet_Sref=4.3,
     while delta > tol and i < iter:
         W_fuel = W_guess * fuel_frac_refined(W_guess, mission_list=mission_sequence[mission],
                                              AR=AR,  S_ref = S['wing'], Swet_Sref = Swet_Sref, M_cruise = M_cruise)
-        W_empty = empty_weight(S, T_0, TOGW=W_guess, W_empty=W_empty, W_fuel=W_fuel)
+        W_empty, W_fuse_empty = empty_weight(S, T_0, TOGW=W_guess, W_empty=W_empty, W_fuel=W_fuel, fuse=True)
         W_total = W_fixed_payload[mission] + W_fuel + W_empty
 
         delta = abs(W_total - W_guess) / max(abs(W_total), 1e-9)
@@ -113,7 +116,8 @@ def weight_convergence(S, AR=3.5, M_cruise=0.85, Swet_Sref=4.3,
     if not converged:
         print('weight not converged!')
     W = W_guess
-    return W, W_empty, W_fuel
+    W_dg = W_empty + 0.5*W_fuel
+    return W, W_empty, W_fuel, W_dg, W_fuse_empty
 
 
 for m in np.linspace(0.85, 1, 10):
