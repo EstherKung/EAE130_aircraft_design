@@ -437,9 +437,12 @@ class Aircraft:
 
 
     def add_hstab(self, Hstab_parm, Hstab_geom): # CALL AFTER CREATING wing OBJECT
+        # Get wing dimensions from Aircraft's internal dict.
+        wing = self.surfaces['Wing']
+
         # Calculate tail arm and surface area
-        L_HT = Hstab_parm['L_HT_frac'] * L_fuse
-        S_HT = (Hstab_parm['c_HT'] * wing.c_bar * S_w) / L_HT
+        L_HT = Hstab_parm['L_HT_frac'] * self.L_fuse
+        S_HT = (Hstab_parm['c_HT'] * wing.c_bar * wing.S) / L_HT
 
         # Call HStab class to create Hstab, assign to Aircraft.surfaces
         hstab = HStab('HStab', S=S_HT, AR=Hstab_parm['AR_HT'], lam=Hstab_parm['lambda_HT'], LE_swp=Hstab_parm['LE_swp_HT'], 
@@ -457,8 +460,11 @@ class Aircraft:
 
 
     def add_vstab(self, VStab_parm, VStab_geom, Vstab_rud): # CALL AFTER CREATING wing OBJECT
+        # Get wing dimensions from Aircraft's internal dict.
+        wing = self.surfaces['Wing']
+
         # Calc. tail arm and area
-        L_VT = VStab_parm['L_VT_frac'] * L_fuse
+        L_VT = VStab_parm['L_VT_frac'] * self.L_fuse
         S_VT = (VStab_parm['c_VT'] * wing.b * wing.S) / L_VT
 
         # Create VStab, assign to Aircraft.surfaces
@@ -484,7 +490,7 @@ class Aircraft:
     #def plot_3D(self, a):
         # implement in future if time, use plotly to make a 3D visualization of the planform
 
-    def json_export(self, fname):
+    def json_export(self, fname, save_dir=None):
         wing = self.surfaces['Wing']
         hstab = self.surfaces['HStab']
         vstab = self.surfaces['VStab']
@@ -564,45 +570,93 @@ class Aircraft:
         }
 
         # Get local directory, save json there
-        dir = Path(__file__).parent
-        json_path = os.path.join(dir, fname)
+        out_dir = Path(save_dir) if save_dir else Path(__file__).parent 
+        json_path = out_dir / fname
+
         with open(json_path, 'w') as json_file:
             json.dump(geom_def, json_file, indent=4)
 
+        # Return the geom_def dict
+        return geom_def
+
+### EXPORT FUNCTION; CALL TO GENERATE JSON FILE IN SEPARATE SCRIPTS
+def define_plane(AR, LE_swp, lam_w, save_dir=None, fname=None):
+    '''
+    Defines aircraft geometry as a function of Wing AR, LE Sweep, Taper Ratio.
+
+    Args:
+        AR (float): Wing Aspect Ratio
+        LE_Swp (float): Wing Leading Edge Sweep
+        lam_w (float): Wing Taper Ratio
+        save_dir (str): Directory to save json file in
+        fname (str): name of the json file
+
+    Returns:
+        aircraft_geom (json): File that defines the aircraft geometry
+    '''
+    # Create Wing
+    wing = Wing('Wing', S=S_w, AR=AR, lam=lam_w, LE_swp=LE_swp, L_offset=0,
+                Z_loc=wing_geom["Z_loc"], Y_rot=wing_geom["Y_rot"], X_rot=wing_geom['X_Rot'], Fold_Loc=wing_geom['Fold_Loc'], Tip_X_rot=wing_geom['Tip_X_rot'])
+
+    wing.add_flaps(Flap_Y_offset=wing_flap["Flap_Y_start"], cf_c_1=wing_flap['cf_c_1'], cf_c_2=wing_flap['cf_c_2'])
+    wing.add_ailerons(b1_offset=wing_ail['b1_offset'], b2_ail=wing_ail['b2_ail'], ca_c1=wing_ail['ca_c1'], ca_c2=wing_ail['ca_c2'])
+    wing.add_slats(b1_slat=wing_slat['b1_slat'], b2_slat=wing_slat['b2_slat'], cs_c1=wing_slat['cs_c1'], cs_c2=wing_slat['cs_c2'])
+
+    wing.calc_coords()
+
+    # Add to aircraft
+    F24HH = Aircraft(name='F24HH', L_fuse=L_fuse)
+    F24HH.add_wing(wing)
+
+    # Create HStab, Vstab
+    F24HH.add_hstab(Hstab_parm=Hstab_parm, Hstab_geom=Hstab_geom)
+    F24HH.add_vstab(VStab_parm=VStab_parm, VStab_geom=VStab_geom, Vstab_rud=Vstab_rud)
+
+    # Plot aircraft planform projection on XY plane
+    #fig, ax = plt.subplots()
+    #F24HH.plot_plane(ax)
+    #plt.title('F24HH Planform')
+    #plt.show()
+
+    # Export as json
+    geom_dict = F24HH.json_export(fname=f'{fname}.json', save_dir=save_dir)
+
+    return geom_dict
+
         
+if __name__ == "__main__":
+    ########################
+    # AIRCRAFT CONSTRUCTOR #
+    ########################
+    # Call all classes and methods to model aircraft
 
-########################
-# AIRCRAFT CONSTRUCTOR #
-########################
-# Call all classes and methods to model aircraft
+    # Create Wing
+    wing = Wing('Wing', S=S_w, AR=wing_parm["AR"], lam=wing_parm["lambda_w"], LE_swp=wing_parm["LE_swp"], L_offset=0,
+                Z_loc=wing_geom["Z_loc"], Y_rot=wing_geom["Y_rot"], X_rot=wing_geom['X_Rot'], Fold_Loc=wing_geom['Fold_Loc'], Tip_X_rot=wing_geom['Tip_X_rot'])
 
-# Create Wing
-wing = Wing('Wing', S=S_w, AR=wing_parm["AR"], lam=wing_parm["lambda_w"], LE_swp=wing_parm["LE_swp"], L_offset=0,
-            Z_loc=wing_geom["Z_loc"], Y_rot=wing_geom["Y_rot"], X_rot=wing_geom['X_Rot'], Fold_Loc=wing_geom['Fold_Loc'], Tip_X_rot=wing_geom['Tip_X_rot'])
+    wing.add_flaps(Flap_Y_offset=wing_flap["Flap_Y_start"], cf_c_1=wing_flap['cf_c_1'], cf_c_2=wing_flap['cf_c_2'])
+    wing.add_ailerons(b1_offset=wing_ail['b1_offset'], b2_ail=wing_ail['b2_ail'], ca_c1=wing_ail['ca_c1'], ca_c2=wing_ail['ca_c2'])
+    wing.add_slats(b1_slat=wing_slat['b1_slat'], b2_slat=wing_slat['b2_slat'], cs_c1=wing_slat['cs_c1'], cs_c2=wing_slat['cs_c2'])
 
-wing.add_flaps(Flap_Y_offset=wing_flap["Flap_Y_start"], cf_c_1=wing_flap['cf_c_1'], cf_c_2=wing_flap['cf_c_2'])
-wing.add_ailerons(b1_offset=wing_ail['b1_offset'], b2_ail=wing_ail['b2_ail'], ca_c1=wing_ail['ca_c1'], ca_c2=wing_ail['ca_c2'])
-wing.add_slats(b1_slat=wing_slat['b1_slat'], b2_slat=wing_slat['b2_slat'], cs_c1=wing_slat['cs_c1'], cs_c2=wing_slat['cs_c2'])
+    wing.calc_coords()
 
-wing.calc_coords()
+    # Add to aircraft
+    F24HH = Aircraft(name='F24HH', L_fuse=L_fuse)
+    F24HH.add_wing(wing)
 
-# Add to aircraft
-F24HH = Aircraft(name='F24HH', L_fuse=L_fuse)
-F24HH.add_wing(wing)
+    # Create HStab, Vstab
+    F24HH.add_hstab(Hstab_parm=Hstab_parm, Hstab_geom=Hstab_geom)
+    F24HH.add_vstab(VStab_parm=VStab_parm, VStab_geom=VStab_geom, Vstab_rud=Vstab_rud)
 
-# Create HStab, Vstab
-F24HH.add_hstab(Hstab_parm=Hstab_parm, Hstab_geom=Hstab_geom)
-F24HH.add_vstab(VStab_parm=VStab_parm, VStab_geom=VStab_geom, Vstab_rud=Vstab_rud)
+    # Plot aircraft planform projection on XY plane
+    fig, ax = plt.subplots()
+    F24HH.plot_plane(ax)
+    plt.title('F24HH Planform')
+    #plt.show()
 
-# Plot aircraft planform projection on XY plane
-fig, ax = plt.subplots()
-F24HH.plot_plane(ax)
-plt.title('F24HH Planform')
-#plt.show()
+    # Export as json
+    F24HH.json_export(fname='airplane_geom2.json')
 
-# Export as json
-F24HH.json_export(fname='airplane_geom2.json')
+    #pprint.pprint(vars(F24HH.surfaces['HStab']))
 
-#pprint.pprint(vars(F24HH.surfaces['HStab']))
-
-#pprint.pprint(wing.xpoints)
+    #pprint.pprint(wing.xpoints)
