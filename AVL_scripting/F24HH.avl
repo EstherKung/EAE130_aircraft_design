@@ -10,7 +10,7 @@ F24HH
 465.0000  12.7958  40.3423
 
 #Xref    Yref    Zref
-27.5473  0.0  -0.0967
+27.7943  0.0  -0.1612
         
 #--------------------------------------------------
 SURFACE
@@ -28,17 +28,17 @@ SCALE
 1.0   1.0   1.0
 
 TRANSLATE
-16.0000  0   0
+17.0000  0   0
 
 SECTION
 #Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-18.4923  0.0000   -0.1000  11.1038  0.0000 
+18.4923  0.0000   -0.6130  11.1038  0.0000 
 AFILE
 C:\Users\14153\Desktop\Airfoil Library\NACA 65A005.dat
 
 SECTION
 #Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-18.4923  2.3000   -0.1000  11.1038  0.0000 
+18.4923  2.3000   -0.6130  11.1038  0.0000 
 AFILE
 C:\Users\14153\Desktop\Airfoil Library\NACA 65A005.dat
 CONTROL
@@ -47,7 +47,7 @@ stabilator  1.0   0.0   0. 0. 0.   1
 
 SECTION
 #Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
-25.7038  10.8943  -0.1000  3.2201   0.0000 
+25.7038  10.8943  -0.6130  3.2201   0.0000 
 AFILE
 C:\Users\14153\Desktop\Airfoil Library\NACA 65A004.dat
 CONTROL
@@ -70,7 +70,7 @@ SCALE
 1.0   1.0   1.0
 
 TRANSLATE
-16.0000  0   0
+17.0000  0   0
 
 SECTION
 #Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
@@ -112,7 +112,7 @@ SCALE
 1.0   1.0   1.0
 
 TRANSLATE
-16.0000  0   0
+17.0000  0   0
 
 SECTION
 #Xle    Yle    Zle     Chord   Ainc  Nspanwise  Sspace
