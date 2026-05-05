@@ -1,0 +1,14 @@
+*.dat
+*.txt
+*.vsp3
+*test*
+*.exe
+plot.ps
+build/
+__pycache__/
+Drag/
+*.csf
+*.vkey
+*.vspaero
+*.vspgeom
+*.log
