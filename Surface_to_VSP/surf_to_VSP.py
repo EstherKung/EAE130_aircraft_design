@@ -2,9 +2,9 @@
 Automatically model a simple aircraft in OpenVSP. Calculate and assign wing, wing fuel tank, tail masses. Run CompGeom, MassProp, VSPAERO.
 """
 import openvsp_config
-# Enable graphics and use the facade (separate process) for non-blocking execution
-openvsp_config.LOAD_GRAPHICS = True
-openvsp_config.LOAD_FACADE = True
+# disable graphics for dask parallel computing
+openvsp_config.LOAD_GRAPHICS = False
+openvsp_config.LOAD_FACADE = False
 
 import openvsp as vsp
 import json
@@ -17,19 +17,13 @@ from collections import defaultdict
 from dataclasses import dataclass
 import logging
 
-# Initialize logging
-logging.basicConfig(handlers=[
-                        logging.FileHandler(os.path.join(Path(__file__).parent, "surf_to_VSP.log"), mode='w'),
-                        logging.StreamHandler()
-                    ],
-                    level=logging.INFO, 
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+from utils import atmos 
 
 # Initialize config file, contains files and constants
 @dataclass
 class Config:
     vsp_filename: str
-    geom_def_path: str
+    geom_def_path: str| dict
     fuse_file_path: str
     wing_foils: list       # Root, Mid, Tip; .dat format
     tail_foils: list       # VStab root & tip, HStab tip, HStab root
@@ -52,32 +46,52 @@ class VSP_Interface:
     Class to interface with OpenVSP. Script in wing and tail geometry, input mass parameters, run analyses (VSPAERO, CompGeom, MassProp).
     '''
 
-    def __init__(self, config: Config, global_x_transl: float = 16.0):
+    def __init__(self, config: Config, global_x_transl: float = 16.0, save_dir: str = None):
         '''
         Initializes inputs, file paths and containers. 
 
         Args: 
             config (Config): Contains file paths and constants. 
             global_x_transl (float): The X offset distance applied to all modeled objects relative to the origin
+            save_dir (str): Directory in which to save the vsp3 file
         '''
 
         self.config = config
         self.global_x_transl = global_x_transl
 
-        # Create path file to local directory (so that results are returned in EAE130_AIRCRAFT_DESIGN\Surface_to_VSP)
-        self.local_dir = Path(__file__).parent
+        # Use the provided directory, or default to the Current Working Directory
+        self.local_dir = Path(save_dir) if save_dir else Path.cwd()
         vsp_file_name = f'{self.config.vsp_filename}.vsp3'
 
         self.planefile = os.path.join(self.local_dir, vsp_file_name)
 
-        # Load json file
-        with open(f"{self.config.geom_def_path}", 'r') as file:
-            self.geom = json.load(file)
+        # Allow either a filepath to a json file, OR a straight dictionary input
+        if isinstance(self.config.geom_def_path, (str, os.PathLike)):
+            # If a string or Path object is passed, read the file
+            with open(self.config.geom_def_path, 'r') as file:
+                self.geom = json.load(file)
+        elif isinstance(self.config.geom_def_path, dict):
+            # If a dictionary is passed directly, just use it
+            self.geom = self.config.geom_def_path
+        else:
+            # Safety net: fail cleanly if the wrong data type is passed
+            raise TypeError(f"geom_def_path must be a file path or a dictionary. Got: {type(self.config.geom_def_path)}")
 
         # Instantiate containers for compgeom results, VSPAERO cases
         self.comp_vols = defaultdict(float)
         self.comp_wet_areas = defaultdict(float)
         self.ss_areas = {}
+
+        # Set up logging
+        # Initialize logging
+        # removed for parallel processing: logging.FileHandler(os.path.join(Path(__file__).parent, "surf_to_VSP.log"), mode='w')
+        logging.basicConfig(handlers=[
+                                
+                                logging.StreamHandler()
+                            ],
+                            level=logging.INFO, 
+                            format='%(asctime)s - %(levelname)s - %(message)s')
+        
 
     def BuildPlane(self, include_fuse: bool):
         # Build complete aircraft in OpenVSP. Call to generate aircraft
@@ -86,8 +100,8 @@ class VSP_Interface:
 
         vsp.ClearVSPModel()
 
-        vsp.InitGUI()
-        vsp.StartGUI()
+        #vsp.InitGUI()
+        #vsp.StartGUI()
 
         # Fuselage File
         if include_fuse == True:
@@ -98,18 +112,18 @@ class VSP_Interface:
 
         vsp.SetAllViews(vsp.CAM_LEFT_ISO)
         vsp.FitAllViews()
-        vsp.UpdateGUI()
+        #vsp.UpdateGUI()
         
         self._Build_Wing()
-        vsp.UpdateGUI()
+        #vsp.UpdateGUI()
         self._Build_HStab()
-        vsp.UpdateGUI()
+        #vsp.UpdateGUI()
         self._Build_VStab()
 
         vsp.SetAllViews(vsp.CAM_LEFT_ISO)
         vsp.FitAllViews()
-        vsp.UpdateGUI()
-        vsp.StopGUI()
+        #vsp.UpdateGUI()
+        #vsp.StopGUI()
 
         vsp.Update()
         vsp.WriteVSPFile(self.planefile)
@@ -378,6 +392,8 @@ class VSP_Interface:
     def Run_MassProp(self, set: str = 'Set_19', n_slice: float = 100):
         # Runs MassProp (by default uses Set_19, can change if wish), returns CG location in self.cg
         # By default, uses 100 slices. Can change for improved accuracy. Suggest 200. 250 crashed my computer so maybe don't do that
+        # Run this analysis only if you want 
+
         # Returns xCG Location and total Mass
         logging.info('Setting up a Mass Properties Analysis...')
 
@@ -402,9 +418,9 @@ class VSP_Interface:
 
         self.tot_mass = vsp.GetDoubleResults(mass_res_id, 'Total_Mass')
 
-        logging.info(f'Calculated Mass Properties: Total Mass = {self.tot_mass} slugs;   XCG = {self.xCG};   ZCG = {self.zCG}')
+        logging.info(f'Calculated Mass Properties: Total Mass = {self.tot_mass[0]} slugs;   XCG = {self.xCG};   ZCG = {self.zCG}')
 
-        return self.xCG, self.yCG, self.zCG, self.tot_mass
+        return self.xCG, self.yCG, self.zCG, self.tot_mass[0]
 
     def Assign_Mass(self, densities: dict):
         # Use this method once you run Weigh_Plane.Mass(). Assigns calculated masses of wing, tails and wing tanks to existing vsp model. 
@@ -547,6 +563,109 @@ class VSP_Interface:
         # turn on for testing
         '''vsp.Update()
         vsp.WriteVSPFile(self.planefile)'''
+
+    def calc_CD0(self, Mach, alt):
+        '''
+        Run a parasite drag analysis in OpenVSP
+
+        Args:
+            Mach (float): Mach number of flight condition
+            Alt (float): Altitude of flight condition
+        
+        Returns:
+            CD0 (float): Parasite Drag
+        '''
+
+        # Calculate flight velocity
+        rho, a = atmos.atmos(h=alt)
+        fvel = Mach * a
+        logging.info(f'Flight Velocity = {fvel:.2f} ft/s')
+
+        # Import plane
+        vsp.ClearVSPModel()
+        vsp.ReadVSPFile(self.planefile)
+
+        # Define analysis type name
+        analysis = "ParasiteDrag"
+
+        # Clear any previous results 
+        #vsp.DeleteAllResults()
+        
+        # Debugging; print all available analysis inputs 
+        #vsp.PrintAnalysisInputs("ParasiteDrag")
+
+        # Set analysis inputs
+        logging.info('Setting up a Parasite Drag Analysis...')
+        vsp.SetIntAnalysisInput(analysis, "GeomSet", [self.set_0_idx])
+        vsp.SetDoubleAnalysisInput(analysis, "Sref", [self.geom['wing']['S_w']])
+        vsp.SetDoubleAnalysisInput(analysis, "Vinf", [fvel])
+        vsp.SetDoubleAnalysisInput(analysis, "Altitude", [alt])
+
+        logging.info('Running a Parasite Drag Analysis...')
+        res_id = vsp.ExecAnalysis(analysis)
+
+        # Debugging, print all results
+        #vsp.PrintResults(res_id)
+
+        # Grab results
+        CD0 = vsp.GetDoubleResults(res_id, "Total_CD_Total")
+        logging.info(f'Parasite Drag = {CD0[0]}')
+
+        vsp.Update()
+        vsp.WriteVSPFile(self.planefile)
+
+        return CD0[0]
+
+    def calc_CD_wave(self, Mach):
+        '''
+        Run a wave drag analysis in OpenVSP
+
+        Args:
+            Mach (float): Mach number of flight condition
+        
+        Returns:
+            CD0_w (float): Wave Drag
+        '''
+
+        # Import plane
+        vsp.ClearVSPModel()
+        vsp.ReadVSPFile(self.planefile)
+
+        # Analysis type
+        wave = "WaveDrag"
+
+        # we have to specify the wave drag settings in two methods
+        wd_id = vsp.FindContainer("WaveDragSettings", 0)
+
+        vsp.SetParmVal(wd_id, "RefFlag", "WaveDrag", 0.0) 
+        vsp.SetParmVal(wd_id, "Sref", "WaveDrag", self.geom['wing']['S_w'])
+
+        vsp.Update()
+
+        # Clear any previous results 
+        #vsp.DeleteAllResults()
+
+        # Set analysis inputs
+        logging.info('Setting up a Wave Drag Analysis...')
+        vsp.SetIntAnalysisInput(wave, "Set", [self.set_0_idx])
+        vsp.SetDoubleAnalysisInput(wave, "Mach", [Mach])
+        
+        #vsp.PrintAnalysisInputs("WaveDrag")
+
+        # Execute Analysis
+        logging.info('Running a Wave Drag Analysis...')
+        res_id = vsp.ExecAnalysis(wave)
+
+        #vsp.PrintResults(res_id)
+
+        # Grab results
+        CD_wave = vsp.GetDoubleResults(res_id, "CDWave")
+        logging.info(f'Wave Drag = {CD_wave[0]}')
+
+        vsp.Update()
+        vsp.WriteVSPFile(self.planefile)
+
+        return CD_wave[0]
 
 
     def Tester(self):
@@ -765,6 +884,13 @@ if __name__ == "__main__":
     vspfile.BuildPlane(include_fuse=True)
     vspfile.Run_CompGeom()
 
+    # Calculate CD0
+    #CD0 = vspfile.calc_CD0(Mach=0.85, alt=35000)
+
+    # Calculate Wave Drag
+    #vspfile.calc_CD_wave(Mach=1.6)
+    
+
     # Calculate Masses of surfaces based on CompGeom results and 
     mass = Weigh_Plane(manager=vspfile)
     desnities, comp_mass = mass.Mass()
@@ -774,6 +900,8 @@ if __name__ == "__main__":
 
     # Perform VSP analyses; MassProps, VSPAERO, etc. 
     xcg, ycg, zcg, AC_mass_slug = vspfile.Run_MassProp(n_slice=150)
+
+    print(AC_mass_slug * 32.174)
     #vspfile._initialize_NP_VSPAERO(xcg=xcg)
     
     #SM, xNP = vspfile.Run_VSPAERO_NP(xcg=xcg)
