@@ -37,9 +37,10 @@ wing_parm = {
 }
 
 wing_geom = {
+    "X_loc": 16.0,      # Location of wing from nose, ft
     "Z_loc": -0.1,       # Vertical Offset, ft
     "Y_rot": 1.5,       # Angle of Incidence, degrees
-    "X_Rot": 0,         # Dihedral, degrees
+    "X_Rot": -1,         # Dihedral, degrees, positive CCW from front
     "Fold_Loc": 14.0,   # Location of wing fold, ft 
     "Tip_X_rot": -2.0   # Washout, degrees
 }
@@ -222,11 +223,12 @@ class planform:
 #####################
 
 class Wing(planform):
-    def __init__(self, name, S, AR, lam, LE_swp, L_offset, Z_loc, Y_rot, X_rot, Fold_Loc, Tip_X_rot):
+    def __init__(self, name, S, AR, lam, LE_swp, L_offset, X_Loc, Z_loc, Y_rot, X_rot, Fold_Loc, Tip_X_rot):
         super().__init__(name, S, AR, lam, LE_swp, L_offset)
         
         self.fold_loc = Fold_Loc
         self.washout = Tip_X_rot
+        self.X_loc = X_Loc
         self.Z_loc = Z_loc
         self.Y_rot = Y_rot
         self.X_rot = X_rot 
@@ -272,15 +274,18 @@ class Wing(planform):
 
         yLE = (self.b / 2) * span_fracs
         xLE = yLE * np.tan(self.LE_swp_rad) + self.L_offset
+        zLE = yLE * np.tan(np.deg2rad(self.X_rot)) + self.Z_loc
         chords = self.c_r - ((self.c_r - self.c_t) * span_fracs)
 
         self.xLE = xLE.tolist()
         self.yLE = yLE.tolist()
-        self.zLE = self.Z_loc
+        self.zLE = zLE.tolist()
         self.chords = chords.tolist()
+
+        #print(self.zLE)
         
 
-        pprint.pprint(yLE)
+        #pprint.pprint(yLE)
 
 # Testing, enable if testing wing
 '''# Call the Wing class to define the main wing
@@ -436,12 +441,12 @@ class Aircraft:
         self.surfaces['Wing'] = wing_object
 
 
-    def add_hstab(self, Hstab_parm, Hstab_geom): # CALL AFTER CREATING wing OBJECT
+    def add_hstab(self, Hstab_parm, Hstab_geom, L_HT_frac = Hstab_parm['L_HT_frac']): # CALL AFTER CREATING wing OBJECT
         # Get wing dimensions from Aircraft's internal dict.
         wing = self.surfaces['Wing']
 
         # Calculate tail arm and surface area
-        L_HT = Hstab_parm['L_HT_frac'] * self.L_fuse
+        L_HT = L_HT_frac * self.L_fuse
         S_HT = (Hstab_parm['c_HT'] * wing.c_bar * wing.S) / L_HT
 
         # Call HStab class to create Hstab, assign to Aircraft.surfaces
@@ -519,6 +524,7 @@ class Aircraft:
                 "slat_2_span": wing.ss['slat']['b2_slat'],
                 "slat_c_frac1": wing.ss['slat']['c1_slat'],
                 "slat_c_frac2": wing.ss['slat']['c2_slat'],
+                "X_loc": wing.X_loc,
                 "Z_loc": wing.Z_loc,
                 "Y_rot": wing.Y_rot,
                 "X_rot": wing.X_rot,
@@ -580,7 +586,8 @@ class Aircraft:
         return geom_def
 
 ### EXPORT FUNCTION; CALL TO GENERATE JSON FILE IN SEPARATE SCRIPTS
-def define_plane(AR, LE_swp, lam_w, save_dir=None, fname=None):
+def define_plane(AR=wing_parm['AR'], LE_swp=wing_parm['LE_swp'], lam_w=wing_parm['lambda_w'], save_dir=None, fname=None,
+                X_loc_wing = wing_geom['X_loc'], X_rot=wing_geom['X_Rot'], L_HT_frac = Hstab_parm['L_HT_frac']):
     '''
     Defines aircraft geometry as a function of Wing AR, LE Sweep, Taper Ratio.
 
@@ -591,12 +598,14 @@ def define_plane(AR, LE_swp, lam_w, save_dir=None, fname=None):
         save_dir (str): Directory to save json file in
         fname (str): name of the json file
 
+        Set at predefined defaults unless specified
+
     Returns:
         aircraft_geom (json): File that defines the aircraft geometry
     '''
     # Create Wing
-    wing = Wing('Wing', S=S_w, AR=AR, lam=lam_w, LE_swp=LE_swp, L_offset=0,
-                Z_loc=wing_geom["Z_loc"], Y_rot=wing_geom["Y_rot"], X_rot=wing_geom['X_Rot'], Fold_Loc=wing_geom['Fold_Loc'], Tip_X_rot=wing_geom['Tip_X_rot'])
+    wing = Wing('Wing', S=S_w, AR=AR, lam=lam_w, LE_swp=LE_swp, L_offset=0, X_Loc=X_loc_wing,
+                Z_loc=wing_geom["Z_loc"], Y_rot=wing_geom["Y_rot"], X_rot=X_rot, Fold_Loc=wing_geom['Fold_Loc'], Tip_X_rot=wing_geom['Tip_X_rot'])
 
     wing.add_flaps(Flap_Y_offset=wing_flap["Flap_Y_start"], cf_c_1=wing_flap['cf_c_1'], cf_c_2=wing_flap['cf_c_2'])
     wing.add_ailerons(b1_offset=wing_ail['b1_offset'], b2_ail=wing_ail['b2_ail'], ca_c1=wing_ail['ca_c1'], ca_c2=wing_ail['ca_c2'])
@@ -609,7 +618,7 @@ def define_plane(AR, LE_swp, lam_w, save_dir=None, fname=None):
     F24HH.add_wing(wing)
 
     # Create HStab, Vstab
-    F24HH.add_hstab(Hstab_parm=Hstab_parm, Hstab_geom=Hstab_geom)
+    F24HH.add_hstab(Hstab_parm=Hstab_parm, Hstab_geom=Hstab_geom, L_HT_frac=L_HT_frac)
     F24HH.add_vstab(VStab_parm=VStab_parm, VStab_geom=VStab_geom, Vstab_rud=Vstab_rud)
 
     # Plot aircraft planform projection on XY plane
@@ -631,7 +640,7 @@ if __name__ == "__main__":
     # Call all classes and methods to model aircraft
 
     # Create Wing
-    wing = Wing('Wing', S=S_w, AR=wing_parm["AR"], lam=wing_parm["lambda_w"], LE_swp=wing_parm["LE_swp"], L_offset=0,
+    wing = Wing('Wing', S=S_w, AR=wing_parm["AR"], lam=wing_parm["lambda_w"], LE_swp=wing_parm["LE_swp"], L_offset=0, X_Loc=wing_geom['X_loc'],
                 Z_loc=wing_geom["Z_loc"], Y_rot=wing_geom["Y_rot"], X_rot=wing_geom['X_Rot'], Fold_Loc=wing_geom['Fold_Loc'], Tip_X_rot=wing_geom['Tip_X_rot'])
 
     wing.add_flaps(Flap_Y_offset=wing_flap["Flap_Y_start"], cf_c_1=wing_flap['cf_c_1'], cf_c_2=wing_flap['cf_c_2'])
