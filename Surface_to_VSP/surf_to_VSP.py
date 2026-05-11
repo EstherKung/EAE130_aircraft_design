@@ -9,6 +9,7 @@ openvsp_config.LOAD_FACADE = False
 import openvsp as vsp
 import json
 import os
+import sys
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -93,8 +94,16 @@ class VSP_Interface:
                             format='%(asctime)s - %(levelname)s - %(message)s')
         
 
-    def BuildPlane(self, include_fuse: bool):
-        # Build complete aircraft in OpenVSP. Call to generate aircraft
+    def BuildPlane(self, include_fuse: bool, high_fidel=True):
+        '''
+        Build complete aircraft in OpenVSP. Call to generate aircraft
+        
+        Args:
+            include_fuse (bool): Include a fuselage file 
+            high_fidel (bool): Increase mesh tessalation if True
+        '''
+        
+        self.fidel = high_fidel
 
         logging.info('Building Aircraft...')
 
@@ -155,7 +164,10 @@ class VSP_Interface:
         vsp.SetParmVal(wing_id, "Tip_Chord", "XSec_1", c_mid)
         vsp.SetParmVal(wing_id, "Sweep_Location", "XSec_1", 0.0)
         vsp.SetParmVal(wing_id, "Sweep", "XSec_1", wing["swp_w"])
-        vsp.SetParmVal(wing_id, "SectTess_U", "XSec_1", 40) 
+        if self.fidel==True:
+            vsp.SetParmVal(wing_id, "SectTess_U", "XSec_1", 40) 
+        elif self.fidel==False:
+            pass
 
         #Folding Outer Panel
         vsp.SetParmVal(wing_id, "Span", "XSec_2", b_half - y_fold)
@@ -163,8 +175,11 @@ class VSP_Interface:
         vsp.SetParmVal(wing_id, "Tip_Chord", "XSec_2", c_tip)
         vsp.SetParmVal(wing_id, "Sweep_Location", "XSec_2", 0.0)
         vsp.SetParmVal(wing_id, "Sweep", "XSec_2", wing["swp_w"])
-        vsp.SetParmVal(wing_id, "SectTess_U", "XSec_2", 20)
         vsp.SetParmVal(wing_id, 'Twist', 'XSec_2', wing['Tip_X_rot'])
+        if self.fidel==True:
+            vsp.SetParmVal(wing_id, "SectTess_U", "XSec_2", 20)
+        elif self.fidel==False:
+            pass
 
         # Global Positioning 
         vsp.SetParmVal(wing_id, "X_Rel_Location", "XForm", self.global_x_transl)
@@ -173,13 +188,18 @@ class VSP_Interface:
         vsp.SetParmVal(wing_id, "X_Rel_Rotation", "XForm", wing["X_rot"])
         
         # Increase Num_W
-        vsp.SetParmVal(wing_id, 'Tess_W', 'Shape', 41)
+        if self.fidel==True:
+            vsp.SetParmVal(wing_id, 'Tess_W', 'Shape', 41)
+        elif self.fidel==False:
+            pass
 
         #Assign to set0, 3, 19
         ########### SET0 = WING/TANK, TAILS, FUSE SURFACE;  SET3 = WING & TAIL ONLY;   SET19 = ALL MASS (USE FOR CG CALC)
         self.set_0_idx = vsp.GetSetIndex("Set_0")
         self.set_3_idx = vsp.GetSetIndex("Set_3")
+        self.set_4_idx = vsp.GetSetIndex("Set_4") # fuel tank
         self.set_19_idx = vsp.GetSetIndex("Set_19")
+
         vsp.SetSetFlag(wing_id, self.set_0_idx, True)
         vsp.SetSetFlag(wing_id, self.set_3_idx, True)
         vsp.SetSetFlag(wing_id, self.set_19_idx, True)
@@ -216,6 +236,7 @@ class VSP_Interface:
         vsp.SetParmVal(wtank_id, "EtaTrimMax", "Design", y_fold/b_half - 0.02)
 
         vsp.SetSetFlag(wtank_id, self.set_19_idx, True)
+        vsp.SetSetFlag(wtank_id, self.set_4_idx, True)
 
 
         ## CONTROL SUBSURFACES ##
@@ -271,13 +292,19 @@ class VSP_Interface:
         vsp.SetParmVal(hstab_id, "Tip_Chord", "XSec_1", hstab["c_t_HT"])
         vsp.SetParmVal(hstab_id, "Sweep_Location", "XSec_1", 0)
         vsp.SetParmVal(hstab_id, "Sweep", "XSec_1", hstab["swp_HT"])
-        vsp.SetParmVal(hstab_id, "SectTess_U", "XSec_1", 41)
+        if self.fidel==True:
+            vsp.SetParmVal(hstab_id, "SectTess_U", "XSec_1", 41)
+        elif self.fidel==False:
+            pass
         vsp.SetParmVal(hstab_id, "X_Rel_Location", "XForm", hstab["x_loc_HT"] + self.global_x_transl)
         vsp.SetParmVal(hstab_id, "Y_Rel_Location", "XForm", hstab["Y_loc"])
         vsp.SetParmVal(hstab_id, "Z_Rel_Location", "XForm", hstab["Z_loc"])
 
         # Increase Num_W
-        vsp.SetParmVal(hstab_id, 'Tess_W', 'Shape', 61)
+        if self.fidel==True:
+            vsp.SetParmVal(hstab_id, 'Tess_W', 'Shape', 61)
+        elif self.fidel==False:
+            pass
 
         #Define the HStab Airfoil
         hstab_xsec_surf = vsp.GetXSecSurf(hstab_id, 0)
@@ -310,7 +337,10 @@ class VSP_Interface:
         vsp.SetParmVal(vstab_id, "Tip_Chord", "XSec_1", vstab["c_t_VT"])
         vsp.SetParmVal(vstab_id, "Sweep_Location", "XSec_1", 0)
         vsp.SetParmVal(vstab_id, "Sweep", "XSec_1", vstab["swp_VT"])
-        vsp.SetParmVal(vstab_id, "SectTess_U", "XSec_1", 21)
+        if self.fidel==True:
+            vsp.SetParmVal(vstab_id, "SectTess_U", "XSec_1", 21)
+        elif self.fidel==False:
+            pass
         vsp.SetParmVal(vstab_id, "X_Rel_Location", "XForm", vstab["x_loc_VT"] + self.global_x_transl)
         vsp.SetParmVal(vstab_id, "Y_Rel_Location", "XForm", vstab["Y_loc"])
         vsp.SetParmVal(vstab_id, "Z_Rel_Location", "XForm", vstab["Z_loc"])
@@ -318,7 +348,10 @@ class VSP_Interface:
         #vsp.SetParmVal(vstab_id, "CapBoundFlag", "Endcap", 0.0) # NEW PARMS IN VSP 3.48; DISABLE IF USING 3.47
         #vsp.SetParmVal(vstab_id, "WakeRootFlag", "Endcap", 0.0) # NEW PARMS IN VSP 3.48; DISABLE IF USING 3.47
 
-        vsp.SetParmVal(vstab_id, 'Tess_W', 'Shape', 33)
+        if self.fidel==True:
+            vsp.SetParmVal(vstab_id, 'Tess_W', 'Shape', 33)
+        elif self.fidel==False:
+            pass
 
         #Define the VStab Airfoil
         vstab_xsec_surf = vsp.GetXSecSurf(vstab_id, 0)
@@ -345,9 +378,6 @@ class VSP_Interface:
         logging.info('Modeled VStab...')
 
     def Run_CompGeom(self):
-        # Runs compgeom on vsp file. By default, runs compgeom on the file modeled by BuildPlane.
-        # Returns component volumes, planform areas, and subsurface areas in: self.comp_vols, self.comp_wet_areas, self.ss_areas
-
         logging.info('Setting up CompGeom Run...')
 
         # Load vsp file
@@ -389,12 +419,42 @@ class VSP_Interface:
 
         vsp.Update()
 
-    def Run_MassProp(self, set: str = 'Set_19', n_slice: float = 100):
+
+    def Run_DegenGeom(self):
+        '''
+        Run a Degengeom analysis
+        '''
+        # Load vsp file
+        vsp.ClearVSPModel()
+        vsp.ReadVSPFile(self.planefile)
+
+        logging.info(f'Loaded {self.planefile}...')
+
+        # Set parameters
+        logging.info('Setting up a DegenGeom Run...')
+        vsp.SetAnalysisInputDefaults("DegenGeom")
+        vsp.SetIntAnalysisInput("DegenGeom", "WriteCSVFlag", 0)
+        vsp.SetIntAnalysisInput("DegenGeom", "WriteMFileFlag", 0)
+        #vsp.PrintAnalysisInputs("DegenGeom")
+
+        # Run analysis
+        vsp.ExecAnalysis("DegenGeom")
+
+        # Access Results
+        dg_res_id = vsp.FindLatestResultsID("DegenGeom")
+
+
+
+    def Run_MassProp(self, set: str = 'Set_19', n_slice: float = 100, reduce_tess=False):
         # Runs MassProp (by default uses Set_19, can change if wish), returns CG location in self.cg
         # By default, uses 100 slices. Can change for improved accuracy. Suggest 200. 250 crashed my computer so maybe don't do that
         # Run this analysis only if you want 
 
         # Returns xCG Location and total Mass
+        logging.info(f'Loaded file: {self.planefile}')
+        vsp.ClearVSPModel()
+        vsp.ReadVSPFile(self.planefile)
+
         logging.info('Setting up a Mass Properties Analysis...')
 
         mass_set_idx = vsp.GetSetIndex(set)
@@ -420,6 +480,9 @@ class VSP_Interface:
 
         logging.info(f'Calculated Mass Properties: Total Mass = {self.tot_mass[0]} slugs;   XCG = {self.xCG};   ZCG = {self.zCG}')
 
+        vsp.Update()
+        vsp.WriteVSPFile(self.planefile)
+        
         return self.xCG, self.yCG, self.zCG, self.tot_mass[0]
 
     def Assign_Mass(self, densities: dict):
@@ -873,7 +936,7 @@ class Weigh_Plane:
 ########################
 
 if __name__ == "__main__":
-    config = Config(vsp_filename='F24HH_3',
+    config = Config(vsp_filename='F24HH_4',
                     geom_def_path=r'C:\Users\14153\Desktop\Skewl\EAE 130\Python\EAE130_aircraft_design\Flying_Surfaces\airplane_geom2.json',
                     fuse_file_path=r"C:\Users\14153\Desktop\Skewl\EAE 130\Python\EAE130_aircraft_design\VSP_Files\4_SIMPLE_F24HH_FUSE.vsp3",
                     wing_foils=[r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A006_TEST.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A005.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A004_TEST.dat"],
@@ -898,6 +961,7 @@ if __name__ == "__main__":
     # Assigns densities to previously created VSP file
     vspfile.Assign_Mass(densities=desnities)
 
+    sys.exit()
     # Perform VSP analyses; MassProps, VSPAERO, etc. 
     xcg, ycg, zcg, AC_mass_slug = vspfile.Run_MassProp(n_slice=150)
 
