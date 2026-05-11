@@ -6,14 +6,16 @@ import numpy as np
 import json
 import os
 from dataclasses import dataclass, field
+from dataclass_wizard import JSONWizard
 from typing import List
 from pathlib import Path
+from typing import Union, Any
 import pprint 
 
 @dataclass
 class AVL_Config:
     plane_name: str     # name of the avl file 
-    geom_def: str       # path to aircraft definition json
+    geom_def: str | dict[str, Any]      # path to aircraft definition json OR straight json dictionary
     wing_foils: list    # list of dat files for wing airfoils (root, mid, tip)
     hstab_foils: list   # list of dat files for tail foils (root, tip)
     vstab_foils: str    # airfoil dat file for vstab
@@ -101,9 +103,19 @@ class Hstab(SURFACE):
     # Create a HStab surface
     def __init__(self, name: str, config: AVL_Config):
         self.config = config
-        with open(f"{self.config.geom_def}", 'r') as file:
-            self.geom = json.load(file)
-        
+
+        # Parse either json path, or json dict
+        if isinstance(self.config.geom_def, str):
+            with open(f"{self.config.geom_def}", 'r') as file:
+                self.geom = json.load(file)
+                #print("loaded json file")
+        else:
+            try: 
+                self.geom = self.config.geom_def
+                #print('read json dict')
+            except (ValueError, TypeError, json.JSONDecodeError):
+                print('Input AC def. error!')
+
         self.hstab = self.geom['hstab']
         self.wing = self.geom['wing']
         
@@ -133,8 +145,18 @@ class Vstab(SURFACE):
     # Create VStab surface
     def __init__(self, name: str,config: AVL_Config):
         self.config = config
-        with open(f"{self.config.geom_def}", 'r') as file:
-            self.geom = json.load(file)
+        
+        # Parse either json path, or json dict
+        if isinstance(self.config.geom_def, str):
+            with open(f"{self.config.geom_def}", 'r') as file:
+                self.geom = json.load(file)
+                #print("loaded json file")
+        else:
+            try: 
+                self.geom = self.config.geom_def
+                #print('read json dict')
+            except (ValueError, TypeError, json.JSONDecodeError):
+                print('Input AC def. error!')
 
         self.vstab = self.geom['vstab']
         self.wing = self.geom['wing']
@@ -167,8 +189,18 @@ class Wing(SURFACE):
         self.config = config
         self.wing_afile = self.config.wing_foils
 
-        with open(f'{self.config.geom_def}', 'r') as file:
-            self.geom = json.load(file)
+        # Parse either json path, or json dict
+        if isinstance(self.config.geom_def, str):
+            with open(f"{self.config.geom_def}", 'r') as file:
+                self.geom = json.load(file)
+                #print("loaded json file")
+        else:
+            try: 
+                self.geom = self.config.geom_def
+                #print('read json dict')
+            except (ValueError, TypeError, json.JSONDecodeError):
+                print('Input AC def. error!')
+
         self.wing = self.geom['wing']
 
         super().__init__(name, ydupl=0.0, xtransl=self.wing['X_loc'], Nchord=12, Nspan=24, Sspace=1.1, Ainc=0)
@@ -217,34 +249,67 @@ class Wing(SURFACE):
 
 
 class Write_AVL_File:
-    def __init__(self, config: AVL_Config, surfaces: List[SURFACE], savedir):
+    def __init__(self, config: AVL_Config, surfaces: List[SURFACE]):
+        '''
+        Takes a list of surfaces, and assembles them with the preamble text to create full avl file
+
+        Args:
+            config (Config): configuration file
+            surfaces (List[SURFACE]): A list of surfaces for the aircraft
+        '''
         self.config = config
         self.surfaces = surfaces
 
-        with open(f"{self.config.geom_def}", 'r') as file:
-            self.geom = json.load(file)
+        if isinstance(self.config.geom_def, str):
+            with open(f"{self.config.geom_def}", 'r') as file:
+                self.geom = json.load(file)
+                #print("loaded json file")
+        else:
+            try: 
+                self.geom = self.config.geom_def
+                #print('read json dict')
+            except (ValueError, TypeError, json.JSONDecodeError):
+                print('Input AC def. error!')
 
         self.wing = self.geom['wing']
 
         self.xcg = self.config.CG[0]
         self.zcg = self.config.CG[2]
 
-        print(f'XCG = {self.xcg:.2f} ft')
+        #print(f'XCG = {self.xcg:.2f} ft')
 
-    def Write_File(self):
+
+    def Write_File(self, savedir: str = None):
+        '''
+        Exports the written avl file to a directory
+
+        Args:
+            savedir (str): Directory to save avl file in.  
+                           By default, save in script loc (AVL_scripting/)
+                           If specified, save to specified directory
+
+        Returns:
+            avlfile (str): Full raw text of the written avl file
+        '''
         
         self._Preamble()
         
         for i, surf in enumerate(self.surfaces):
             self.filestr += surf.make_SURFACE()
 
-        # Write File
-        self.local_dir = Path(__file__).parent
-        avl_filename = f'{self.config.plane_name}.avl'
-        self.avlfile = os.path.join(self.local_dir, avl_filename)
+        # Write File (if savedir = None, save in script root; if specified, save there.)
+        self.avl_filename = f'{self.config.plane_name}.avl'
+        if savedir == None:
+            self.local_dir = Path(__file__).parent
+            self.avlfile = os.path.join(self.local_dir, self.avl_filename)
+        elif savedir is not None:
+            self.local_dir = Path(savedir) 
+            self.avlfile = self.local_dir / self.avl_filename
 
         with open(self.avlfile, 'w') as f:
             f.write(self.filestr)
+
+        return self.filestr
 
     def _Preamble(self):
         # Write the preable section for the .avl file. Run first
@@ -283,5 +348,5 @@ if __name__ == "__main__":
     vstab = Vstab(name='Vstab', config=config)
     wing = Wing(name='Wing', config=config)
 
-    avlfile = Write_AVL_File(config=config, surfaces=[hstab, vstab, wing])
+    avlfile = Write_AVL_File(config=config, surfaces=[hstab, vstab, wing], savedir='SM_conv')
     avlfile.Write_File()
