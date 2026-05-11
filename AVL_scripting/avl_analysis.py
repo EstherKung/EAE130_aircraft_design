@@ -1,3 +1,7 @@
+'''
+Wraps avl.exe to perform basic analyses.
+'''
+
 import subprocess
 import re
 import os
