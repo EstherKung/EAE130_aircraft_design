@@ -179,6 +179,9 @@ class planform:
         self.xpoints = [self.LE_point[1], self.Tip_f_point[1], self.Tip_b_point[1], self.TE_point[1]]
         self.ypoints = [self.LE_point[0], self.Tip_f_point[0], self.Tip_b_point[0], self.TE_point[0]]
 
+        # calculate and store geometric centroid
+        self.xcentroid = (self.y_bar * np.tan(self.LE_swp_rad)) + (0.5 * self.c_bar) + self.L_offset
+
     def set_global_loc(self, new_L_offset:float):
         '''
         Modifies the planform LE location (use to move tail surfaces to correct location). Re-calculates planform parameters with reference to offset distance.
@@ -509,6 +512,8 @@ class Aircraft:
                 'c_r_w': wing.c_r,
                 'c_t_w': wing.c_t,
                 'c_bar': wing.c_bar,
+                'x_quart_c_bar': -wing.quart_mac_y,
+                'xcentroid': wing.xcentroid,
                 'swp_w': wing.LE_swp,
                 'swp_mac25_w': wing.quart_mac_swp,
                 'b_fold': wing.fold_loc,
@@ -540,6 +545,9 @@ class Aircraft:
                 "S_HT": hstab.S,
                 "c_r_HT": hstab.c_r,
                 "c_t_HT": hstab.c_t,
+                'c_bar': hstab.c_bar,
+                'x_quart_c_bar': -hstab.quart_mac_y,
+                'xcentroid': hstab.xcentroid,
                 "swp_HT": hstab.LE_swp,
                 "x_loc_HT": hstab.L_abs_HT,
                 "Y_loc": hstab.Y_Loc,
@@ -556,6 +564,9 @@ class Aircraft:
                 "AR_VT": vstab.AR,
                 "c_r_VT": vstab.c_r,
                 "c_t_VT": vstab.c_t,
+                'c_bar': vstab.c_bar,
+                'x_quart_c_bar': -vstab.quart_mac_y,
+                'xcentroid': vstab.xcentroid,
                 "swp_VT": vstab.LE_swp,
                 "swp_25mac_VT": vstab.quart_mac_swp,
                 "lam_VT": vstab.lam,
@@ -661,10 +672,10 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
     F24HH.plot_plane(ax)
     plt.title('F24HH Planform')
-    #plt.show()
+    plt.show()
 
     # Export as json
-    F24HH.json_export(fname='airplane_geom2.json')
+    F24HH.json_export(fname='TEST_airplane_geom3.json')
 
     #pprint.pprint(vars(F24HH.surfaces['HStab']))
 
