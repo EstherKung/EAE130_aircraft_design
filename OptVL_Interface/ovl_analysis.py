@@ -4,13 +4,13 @@ General interface to the OptVL to perform aerodynamic analyses
 from optvl import OVLSolver
 from pprint import pprint
 
-ovl = OVLSolver(r'SM_conv\F24HH_SM.avl')
+'''ovl = OVLSolver(r'SM_conv\F24HH_SM.avl')
 ovl.set_constraint("stabilator", "Cm", 0.00)
 ovl.execute_run()
 
 force_data = ovl.get_total_forces()
 
-
+'''
 
 class ovl_analysis:
     def __init__(self, avlfile: str):
@@ -39,26 +39,40 @@ class ovl_analysis:
             SM (float): Static margin for trimmed flight state
             stabl_defl (float): Stabilator deflection at flight state
         '''
-        # Trim aircraft (elevator, PM = 0) at flight mach, run analysis
+        # Trim aircraft (elevator, PM = 0) at flight mach, run analysis ## Landing Config
         self.ovl.set_parameter('Mach', Mach)
+        self.ovl.set_control_deflection('flap', 45.0)
+        self.ovl.set_control_deflection('slat', 15.0)
         self.ovl.set_constraint("stabilator", "Cm", 0.00)
+        self.ovl.set_constraint("alpha", "CL", CL)
         self.ovl.execute_run()
 
         # Access results
         self.stab_deriv = self.ovl.get_stab_derivs()
         xnp = self.stab_deriv['neutral point']
+        dCM_dalfa = self.stab_deriv['dCm/dalpha']
+        dCN_dbeta = self.stab_deriv["dCn'/dbeta"]
+        dCl_dbeta = self.stab_deriv["dCl'/dbeta"]
+        dCM_dq = self.stab_deriv["dCm/dq'"]
+
+        #pprint(self.stab_deriv)
+
+        alpha = self.ovl.get_variable('alpha')
+
+        print(f'dCM/dAlpha = {dCM_dalfa:.3f} | dCN/dBeta = {dCN_dbeta:.3f} | dCl/dBeta = {dCl_dbeta:.3f} | dCM/dq = {dCM_dq:.3f}')
 
         stabl_defl = self.ovl.get_control_deflection('stabilator')
 
         # Calculate SM
         SM = (xnp - xcg) / cref
 
-        print(f'Static Margin: {SM:.4f}, Elevator Deflection: {stabl_defl:.2f} degrees')
+        print(f'Static Margin: {SM:.4f}, Elevator Deflection: {stabl_defl:.2f} degrees, AOA: {alpha:.2f} deg')
         
-        return SM, stabl_defl
+        return SM, stabl_defl, alpha, dCM_dq
 
 
 
 if __name__=='__main__':
     ovlplane = ovl_analysis('SM_conv\F24HH_SM.avl')
+    #ovlplane = ovl_analysis('AVL_scripting\F24HH.avl')
     ovlplane.SM(Mach=0.2, cref=12.7958, xcg = 27.7943, CL=1.77)
