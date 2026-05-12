@@ -20,10 +20,12 @@ from dataclasses import dataclass
 import json
 import sys
 import time
+import gc
 
 # Global variables (to be adjusted for SM convergence)
 X_wing = 18.0
 L_HT_f = 0.29
+c_HT = 0.3
 
 # Global 'preset' variables
 AR_w = 3.5
@@ -49,8 +51,8 @@ SMconf = SM_Config(
     wing_airfoils=[r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A006_TEST.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A005.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A004_TEST.dat"],
     hstab_airfoils = [r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A005.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A004.dat"],
     vstab_airfoils = [r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A004.dat"],
-    xcg_fuse=28.304,
-    zcg_fuse= -0.193
+    xcg_fuse= 28.829,
+    zcg_fuse= -0.183
     )
 
 # Get current directory
@@ -58,9 +60,23 @@ cwd = Path(__file__).resolve().parent
 
 '''start_time = time.perf_counter()'''
 
-def SM_Iteration(X_wing, L_HT_f):
+
+import multiprocessing as mp
+
+def isolated_avl_run(avl_file, Mach, cref, xcg, CL):
+    '''
+    Runs AVL in a totally isolated memory space. 
+    Returns data natively via the Pool.
+    '''
+    from OptVL_Interface import ovl_analysis as ovl 
+    ovlplane = ovl.ovl_analysis(avl_file)
+    SM, stabl_defl, alpha, dCmdq = ovlplane.SM(Mach=Mach, cref=cref, xcg=xcg, CL=CL)
+    return SM, stabl_defl, alpha, dCmdq
+
+
+def SM_Iteration(X_wing, L_HT_f, c_HT, pool=None):
     # Generate initial aircraft json
-    planedef = sdef.define_plane(X_loc_wing=X_wing, L_HT_frac=L_HT_f, save_dir=cwd, fname='sm_conv_plane')
+    planedef = sdef.define_plane(X_loc_wing=X_wing, L_HT_frac=L_HT_f, c_HT=c_HT, save_dir=cwd, fname='sm_conv_plane')
 
     # Get hstab TE X coord (to make sure 50ft is not exceeded)
     x_end_hstab = planedef['hstab']['xLE_pts'][0] + planedef['hstab']['chords'][0] + X_wing # Kill loop if over 50ft
@@ -94,18 +110,28 @@ def SM_Iteration(X_wing, L_HT_f):
 
     fs_weight_lbf = fs_mass_slug * 32.174 
 
+    
+    # Calculate drop tank weight (fuse tank = 6788.66 lbf)
+    dtank_weight = W_fuel - 6788.66 - comp_mass.at['Wing Fuel Tanks', 'Weight [lbf]']
+
+    # Calculate loaded fuselage weight and CG (4380 = strike payload)
+    W_fuse_load = W_fuse_empty + 6788.66 + 4380 + dtank_weight
+
 
     # Calculate CG of aircraft
-    ac_xcg = (fs_weight_lbf*fs_xcg + W_fuse_empty*SMconf.xcg_fuse) / (fs_weight_lbf + W_fuse_empty)
-    ac_zcg = (fs_weight_lbf*fs_zcg + W_fuse_empty*SMconf.zcg_fuse) / (fs_weight_lbf + W_fuse_empty)
+    ac_xcg = (fs_weight_lbf*fs_xcg + W_fuse_load*SMconf.xcg_fuse) / (fs_weight_lbf + W_fuse_load)
+    ac_zcg = (fs_weight_lbf*fs_zcg + W_fuse_load*SMconf.zcg_fuse) / (fs_weight_lbf + W_fuse_load)
     print(ac_xcg, ac_zcg)
+
+    # Calc component-based weight
+    W_comp_tot = W_fuse_load + fs_weight_lbf
 
 
     # Calculate sea level CL
     rho_sl, a_sl = atmos.atmos(0)
     V_sl = 0.21 * a_sl
     CL_sea_level = (2 * W0) / (rho_sl * V_sl**2 * 465)
-    print(CL_sea_level)
+    #print(CL_sea_level)
 
     ### Write AVL file ###
     avlconfig = wavl.AVL_Config(
@@ -127,12 +153,27 @@ def SM_Iteration(X_wing, L_HT_f):
     avl_file.Write_File(savedir=cwd)
 
 
-    #### RUN AVL
+    '''#### RUN AVL
     ovlplane = ovl.ovl_analysis('SM_conv\F24HH_SM.avl')
-    SM, stabl_defl = ovlplane.SM(Mach=0.2, cref=planedef['wing']['c_bar'], xcg = ac_xcg, CL=CL_sea_level)
+    SM, stabl_defl = ovlplane.SM(Mach=0.2, cref=planedef['wing']['c_bar'], xcg = ac_xcg, CL=CL_sea_level)'''
 
-    print(f'Static Margin: {SM:.4f} | Elevator Deflection: {stabl_defl:.4f} | Length Plane: {x_end_hstab:.4f} | Flying Surface Weight: {fs_weight_lbf:.4f}')
-    return SM, stabl_defl, x_end_hstab, fs_weight_lbf
+    #### RUN AVL (Memory-Isolated via Pool)
+    if pool is not None:
+        # Pass the task to the persistent background worker
+        SM, stabl_defl, alpha, dCmdq = pool.apply(
+            isolated_avl_run, 
+            args=('SM_conv\F24HH_SM.avl', 0.2, planedef['wing']['c_bar'], ac_xcg, CL_sea_level)
+        )
+    else:
+        # Fallback if running this script by itself without the optimizer
+        SM, stabl_defl, alpha, dCmdq = isolated_avl_run('SM_conv\F24HH_SM.avl', 0.2, planedef['wing']['c_bar'], ac_xcg, CL_sea_level)
+
+
+    print(f'Static Margin: {SM:.4f} | Elevator Deflection: {stabl_defl:.4f} | Length Plane: {x_end_hstab:.4f} | Flying Surface Weight: {fs_weight_lbf:.4f} | Alpha: {alpha:.2f} deg | dCm/dq: {dCmdq:.3f} | CL: {CL_sea_level:.4f} | xCG: {ac_xcg:.2f} ft | Component W0: {W_comp_tot:.2f} lbs')
+    
+    
+
+    return SM, stabl_defl, x_end_hstab, fs_weight_lbf, alpha, dCmdq
 
 '''end_time = time.perf_counter()
 execution_time = end_time - start_time
@@ -145,4 +186,4 @@ print(f"Executed in {execution_time:.4f} seconds")'''
 '''Static Margin: -0.0408 | Elevator Deflection: 3.3511 | Length Plane: 47.5961 | Flying Surface Weight: 8119.8471'''
 
 if __name__=='__main__':
-    SM_Iteration(X_wing=X_wing, L_HT_f=L_HT_f)
+    SM_Iteration(X_wing=X_wing, L_HT_f=L_HT_f, c_HT=c_HT)
