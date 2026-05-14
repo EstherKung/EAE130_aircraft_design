@@ -598,7 +598,8 @@ class Aircraft:
 
 ### EXPORT FUNCTION; CALL TO GENERATE JSON FILE IN SEPARATE SCRIPTS
 def define_plane(AR=wing_parm['AR'], LE_swp=wing_parm['LE_swp'], lam_w=wing_parm['lambda_w'], save_dir=None, fname=None,
-                X_loc_wing = wing_geom['X_loc'], X_rot=wing_geom['X_Rot'], L_HT_frac = Hstab_parm['L_HT_frac'], c_HT=Hstab_parm['c_HT']):
+                X_loc_wing = wing_geom['X_loc'], X_rot=wing_geom['X_Rot'], L_HT_frac = Hstab_parm['L_HT_frac'], c_HT=Hstab_parm['c_HT'],
+                plot_planf = False):
     '''
     Defines aircraft geometry as a function of Wing AR, LE Sweep, Taper Ratio.
 
@@ -608,6 +609,7 @@ def define_plane(AR=wing_parm['AR'], LE_swp=wing_parm['LE_swp'], lam_w=wing_parm
         lam_w (float): Wing Taper Ratio
         save_dir (str): Directory to save json file in
         fname (str): name of the json file
+        plot_planf (bool): If true, plots the aircraft planform
 
         Set at predefined defaults unless specified
 
@@ -633,10 +635,13 @@ def define_plane(AR=wing_parm['AR'], LE_swp=wing_parm['LE_swp'], lam_w=wing_parm
     F24HH.add_vstab(VStab_parm=VStab_parm, VStab_geom=VStab_geom, Vstab_rud=Vstab_rud)
 
     # Plot aircraft planform projection on XY plane
-    #fig, ax = plt.subplots()
-    #F24HH.plot_plane(ax)
-    #plt.title('F24HH Planform')
-    #plt.show()
+    if plot_planf == True:
+        fig, ax = plt.subplots()
+        F24HH.plot_plane(ax)
+        plt.title('F24HH Planform')
+        plt.show()
+    else:
+        pass
 
     # Export as json
     geom_dict = F24HH.json_export(fname=f'{fname}.json', save_dir=save_dir)
