@@ -400,7 +400,7 @@ class VSP_Interface:
         for name, vol in zip(comp_names, theo_vols):
             self.comp_vols[name.strip()] += vol
 
-        pprint.pprint(self.comp_vols)
+        #pprint.pprint(self.comp_vols)
 
         # Theoretical wetted areas 
         wet_areas = vsp.GetDoubleResults(compgeom_res_id, "Theo_Area")
@@ -807,7 +807,7 @@ class Weigh_Plane:
             'Mass [slugs]': self.Masses
         }, index=self.mlabels)
 
-        print(self.mass_df.round(3))
+        #print(self.mass_df.round(3))
 
         logging.info(f'Total Weight of Flying Surfaces = {self.tot_surf_weight:.2f} lbf;   Total Mass of Flying Surfaces = {self.tot_surf_mass:.2f} slugs')
 
@@ -850,7 +850,7 @@ class Weigh_Plane:
         }
 
         logging.info('Wing Weight Parameters:')
-        pprint.pprint(self.wing_weight_parms)
+        #pprint.pprint(self.wing_weight_parms)
 
         # Store MAC information for later
         self.W_MAC = wing['c_bar']
@@ -875,7 +875,7 @@ class Weigh_Plane:
         }
 
         logging.info('HStab Weight Parameters:')
-        pprint.pprint(self.hstab_weight_parms)
+        #pprint.pprint(self.hstab_weight_parms)
 
     def _VStabMass(self):
         # Estimate vstab mass per Raymer's Eqns. (Internal Method)
@@ -903,7 +903,7 @@ class Weigh_Plane:
         }
 
         logging.info('VStab Weights Parameters:')
-        pprint.pprint(self.vstab_weight_parms)
+        #pprint.pprint(self.vstab_weight_parms)
 
     def _WTankMass(self):
         # Calculate Mass of fuel in wing tanks 
