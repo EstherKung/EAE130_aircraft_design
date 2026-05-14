@@ -110,7 +110,7 @@ if __name__=='__main__':
     print('Optimization Complete')
 
     if result.success:
-        print('Success--Found Feasable Minimum')
+        print('Success: Found Feasable Minimum')
     else:
         print(f'Failed - {result.message}')
 
