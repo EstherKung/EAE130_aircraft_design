@@ -125,7 +125,8 @@ class Hstab(SURFACE):
         self._build_HSTAB()
 
     def _build_HSTAB(self):
-        stabilator = CONTROL(name='stabilator', gain=1.0, Xhinge=0.0, SgnDup=+1)
+        # Stabilator hinge point hardcoded to 25% c_r (approx 1/4 MAC point)
+        stabilator = CONTROL(name='stabilator', gain=1.0, Xhinge=0.25, SgnDup=+1)
 
         for i, cseq in enumerate(self.hstab['cntl_sqs']):
             if cseq == -1:
