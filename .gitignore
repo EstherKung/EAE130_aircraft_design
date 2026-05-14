@@ -1,6 +1,6 @@
 *.dat
 *.txt
-*.vsp3
+#*.vsp3
 *test*
 *.exe
 plot.ps
@@ -13,3 +13,4 @@ Drag/
 *.vspgeom
 *.log
 SQAERO.egg-info
+VSPAERO_Results/
