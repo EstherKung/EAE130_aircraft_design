@@ -26,6 +26,6 @@ def atmos(h: float):
         rho_slug_ft3 = rho_kg_m3.to(ureg.slug / ureg.ft**3).magnitude
         a_ft_s = a_m_s.to(ureg.ft / ureg.s).magnitude
 
-        print(f'Air Density = {rho_slug_ft3:.2e} slug/ft^3,  Speed of Sound = {a_ft_s:.2f} ft/s')
+        #print(f'Air Density = {rho_slug_ft3:.2e} slug/ft^3,  Speed of Sound = {a_ft_s:.2f} ft/s')
 
         return rho_slug_ft3, a_ft_s
