@@ -51,7 +51,7 @@ SMconf = SM_Config(
     wing_airfoils=[r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A006_TEST.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A005.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 64A004_TEST.dat"],
     hstab_airfoils = [r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A005.dat", r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A004.dat"],
     vstab_airfoils = [r"C:\Users\14153\Desktop\Airfoil Library\NACA 65A004.dat"],
-    xcg_fuse= 28.829,
+    xcg_fuse= 28.829, # Where did I get 28.829???
     zcg_fuse= -0.183
     )
 
@@ -107,8 +107,22 @@ def SM_Iteration(X_wing, L_HT_f, c_HT, pool=None):
     vsp_file.Assign_Mass(densities=densities)
 
     fs_xcg, fs_ycg, fs_zcg, fs_mass_slug = vsp_file.Run_MassProp(n_slice=50)
-
     fs_weight_lbf = fs_mass_slug * 32.174 
+
+    # Empty weight of flying surfaces
+    fs_empty_lbf = fs_weight_lbf - comp_mass.at['Wing Fuel Tanks', 'Weight [lbf]']
+
+    # Weight of flying surfaces calculated by initial weight estimate
+    W_fs_init = W_empty - W_fuse_empty
+
+    # Weight of flying surfaces after optimization
+    W_fs_opt = comp_mass.at['Wing', 'Weight [lbf]'] + comp_mass.at['HStab', 'Weight [lbf]'] + comp_mass.at['VStab', 'Weight [lbf]']
+
+    # Change in flying surface weight due to optimization
+    W_fs_delta = W_fs_init - W_fs_opt
+
+    # Component-based empty weight
+    W_empty_comp = W_fuse_empty + fs_empty_lbf
 
     
     # Calculate drop tank weight (fuse tank = 6788.66 lbf)
@@ -125,6 +139,9 @@ def SM_Iteration(X_wing, L_HT_f, c_HT, pool=None):
 
     # Calc component-based weight
     W_comp_tot = W_fuse_load + fs_weight_lbf
+
+    # Change in empty weight after optimization
+    W_empty_delta = W0 - W_comp_tot
 
 
     # Calculate sea level CL
@@ -169,7 +186,7 @@ def SM_Iteration(X_wing, L_HT_f, c_HT, pool=None):
         SM, stabl_defl, alpha, dCmdq = isolated_avl_run('SM_conv\F24HH_SM.avl', 0.2, planedef['wing']['c_bar'], ac_xcg, CL_sea_level)
 
 
-    print(f'Static Margin: {SM:.4f} | Elevator Deflection: {stabl_defl:.4f} | Length Plane: {x_end_hstab:.4f} | Flying Surface Weight: {fs_weight_lbf:.4f} | Alpha: {alpha:.2f} deg | dCm/dq: {dCmdq:.3f} | CL: {CL_sea_level:.4f} | xCG: {ac_xcg:.2f} ft | Component W0: {W_comp_tot:.2f} lbs')
+    print(f'Static Margin: {SM:.4f} | Elevator Deflection: {stabl_defl:.4f} | Length Plane: {x_end_hstab:.4f} | Flying Surface Weight: {fs_weight_lbf:.4f} | Alpha: {alpha:.2f} deg | dCm/dq: {dCmdq:.3f} | CL: {CL_sea_level:.4f} | xCG: {ac_xcg:.2f} ft | W_dg: {W_dg:.2f} lbs | Init W0: {W0:.2f} lbs | Component W0: {W_comp_tot:.2f} lbs | Delta W0: {W_empty_delta:.2f} lbs | Component Empty: {W_empty_comp:.2f} lbs | Init Empty: {W_empty:.2f} lbs | Delta FS Weight: {W_fs_delta:.2f} lbf')
     
     
 
